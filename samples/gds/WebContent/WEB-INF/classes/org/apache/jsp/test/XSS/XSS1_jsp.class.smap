@@ -1,0 +1,12 @@
+SMAP
+XSS1_jsp.java
+JSP
+*S JSP
+*F
++ 0 XSS1.jsp
+test/XSS/XSS1.jsp
+*L
+1,10:53,0
+10:54
+11,3:55,0
+*E

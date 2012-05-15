@@ -1,0 +1,42 @@
+
+<!--
+Automatically created by Apache Tomcat JspC.
+Place this fragment in the web.xml before all icon, display-name,
+description, distributable, and context-param elements.
+-->
+
+    <servlet>
+        <servlet-name>org.apache.jsp.test.XSS.XSS1_jsp</servlet-name>
+        <servlet-class>org.apache.jsp.test.XSS.XSS1_jsp</servlet-class>
+    </servlet>
+
+    <servlet>
+        <servlet-name>org.apache.jsp.test.XSS.XSS2_jsp</servlet-name>
+        <servlet-class>org.apache.jsp.test.XSS.XSS2_jsp</servlet-class>
+    </servlet>
+
+    <servlet>
+        <servlet-name>org.apache.jsp.test.include.XSS2Include_jsp</servlet-name>
+        <servlet-class>org.apache.jsp.test.include.XSS2Include_jsp</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>org.apache.jsp.test.XSS.XSS1_jsp</servlet-name>
+        <url-pattern>/test/XSS/XSS1.jsp</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>org.apache.jsp.test.XSS.XSS2_jsp</servlet-name>
+        <url-pattern>/test/XSS/XSS2.jsp</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>org.apache.jsp.test.include.XSS2Include_jsp</servlet-name>
+        <url-pattern>/test/include/XSS2Include.jsp</url-pattern>
+    </servlet-mapping>
+
+<!--
+All session-config, mime-mapping, welcome-file-list, error-page, taglib,
+resource-ref, security-constraint, login-config, security-role,
+env-entry, and ejb-ref elements should follow this fragment.
+-->

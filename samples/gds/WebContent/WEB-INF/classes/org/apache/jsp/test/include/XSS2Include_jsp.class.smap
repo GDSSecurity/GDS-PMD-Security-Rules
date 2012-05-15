@@ -1,0 +1,11 @@
+SMAP
+XSS2Include_jsp.java
+JSP
+*S JSP
+*F
++ 0 XSS2Include.jsp
+test/include/XSS2Include.jsp
+*L
+1,3:53,0
+3:54
+*E
