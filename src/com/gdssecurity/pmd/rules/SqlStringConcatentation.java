@@ -40,25 +40,37 @@ public class SqlStringConcatentation extends BaseSecurityRule {
             "insecureTypes",
             "types that could create a potential SQLi exposure when concatenated to a SQL statement",
             new String[] { "\"java.lang.String\"" }, 1.0f, '|');
-	
+
+    // Ignoring Numeric types by default
+    private static final PropertyDescriptor safeTypesDescriptor = new StringProperty(
+            "safeTypes",
+            "types that may be considered safe to ignore.",
+            new String[] { "\"java.lang.Integer\"" }, 1.0f, '|');
+    
     private static Pattern standardSqlRegex = null;
     private static Pattern customSqlRegex = null;
     private static HashSet<String> insecureTypes = null;
+    private static HashSet<String> safeTypes = null;
     
     protected void init() {
         if (standardSqlRegex == null) {
             standardSqlRegex = Pattern.compile(
-                    getStringProperty(standardSqlRegexDescriptor), 2);
+                    getStringProperty(standardSqlRegexDescriptor), Pattern.CASE_INSENSITIVE | Pattern.MULTILINE);
         }
         
         if (customSqlRegex == null) {
             customSqlRegex = Pattern.compile(
-                    getStringProperty(customSqlRegexDescriptor), 2);
+                    getStringProperty(customSqlRegexDescriptor), Pattern.CASE_INSENSITIVE | Pattern.MULTILINE);
         }
         
         if (insecureTypes == null) {
             insecureTypes = Utils.arrayAsHashSet(
                     getStringProperties(insecureTypesDescriptor));
+        }
+
+        if (safeTypes == null) {
+            safeTypes = Utils.arrayAsHashSet(
+                    getStringProperties(safeTypesDescriptor));
         }
     }
 
@@ -102,7 +114,7 @@ public class SqlStringConcatentation extends BaseSecurityRule {
                     String varName = astName.getImage();
                     String varType = Utils.getType(astName, rc, varName);
 
-                    if (varType.indexOf("java.lang.String") != -1) {        				
+                    if (varType.indexOf("java.lang.String") != -1) {                        
                         NameOccurrence n = new NameOccurrence(astName,
                                 astName.getImage());
 
@@ -133,6 +145,8 @@ public class SqlStringConcatentation extends BaseSecurityRule {
                             varType + " is  tainted data"}),
                                 "",
                                 "");
+                    } else if (safeTypes.contains(varType)) {
+                            LOG.finest("Ignoring " + varType + " as this was configured as one of the safe types.");
                     } else {
                         addSecurityViolation(this, rc, astAdditiveExpression,
                                 MessageFormat.format(getMessage(),
@@ -145,8 +159,7 @@ public class SqlStringConcatentation extends BaseSecurityRule {
                     }
                 }
             } else {
-                LOG.finest(
-                        "Concatenation of SQL strings detected. This does not appear to introduce a potential SQL Injection vulnerability; however, consider a parameterized command and moving the SQL into a stored procedure");
+                LOG.finest("Concatenation of SQL strings detected. This does not appear to introduce a potential SQL Injection vulnerability; however, consider a parameterized command and moving the SQL into a stored procedure");
             }
         }
         
