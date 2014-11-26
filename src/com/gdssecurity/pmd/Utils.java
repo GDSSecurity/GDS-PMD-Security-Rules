@@ -19,11 +19,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import net.sourceforge.pmd.RuleContext;
-import net.sourceforge.pmd.ast.ASTClassOrInterfaceType;
-import net.sourceforge.pmd.ast.ASTExpression;
-import net.sourceforge.pmd.ast.ASTName;
-import net.sourceforge.pmd.ast.ASTPrimaryExpression;
-import net.sourceforge.pmd.ast.SimpleNode;
+import net.sourceforge.pmd.lang.ast.Node;
+import net.sourceforge.pmd.lang.java.ast.ASTClassOrInterfaceType;
+import net.sourceforge.pmd.lang.java.ast.ASTExpression;
+import net.sourceforge.pmd.lang.java.ast.ASTName;
+import net.sourceforge.pmd.lang.java.ast.ASTPrimaryExpression;
 
 
 public class Utils {
@@ -54,33 +54,43 @@ public class Utils {
                     "Unexpected error while retrieving code snippet from "
                             + fileName + " " + ioe.getStackTrace().toString());
         }
+        finally {
+        	if (br != null) {
+        		try {
+					br.close();
+				} catch (IOException e) {
+					// 
+				}
+        	}
+        }
         
         return sb.toString();
     }
 	
-    public static String getType(SimpleNode node, RuleContext rc, String method) {
+    public static String getType(Node node, RuleContext rc, String method) {
         String methodMsg = "Utils::getType - {0}";
 		
         String cannonicalName = "";
-        Class type = null;
+        Class<? extends Object> type = null;
 		
         try {
-            if (node instanceof ASTExpression) {
-				
+            if (node instanceof ASTExpression) {				
                 type = node.getFirstChildOfType(ASTPrimaryExpression.class).getFirstChildOfType(ASTName.class).getType();
             } else if (node instanceof ASTPrimaryExpression) {
-                if (node.containsChildOfType(ASTClassOrInterfaceType.class)) {
-					
-                    type = node.getFirstChildOfType(ASTClassOrInterfaceType.class).getType();
-                } else {
-					
-                    type = node.getFirstChildOfType(ASTName.class).getType();
+                if (node.hasDescendantOfType(ASTClassOrInterfaceType.class)) {					
+                    type = node.getFirstDescendantOfType(ASTClassOrInterfaceType.class).getType();
+                } else {					
+                    type = node.getFirstDescendantOfType(ASTName.class).getType();
                 }
             } else if (node instanceof ASTName) {
                 type = ((ASTName) node).getType();
-            }
-			
-            cannonicalName = type.getCanonicalName();
+            }            
+			if (type != null) {
+				cannonicalName = type.getCanonicalName();
+			}
+			else {
+				cannonicalName = "UNKNOWN_TYPE";
+			}
         } catch (Exception ex1) {
     		
             LOG.log(Level.INFO, methodMsg,

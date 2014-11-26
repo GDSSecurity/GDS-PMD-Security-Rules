@@ -22,7 +22,10 @@
       
       <properties>         
          <property name="sinks">
-            <value>java.sql.Statement.executeQuery|</value>
+            <value>
+|java.sql.Statement.executeQuery|java.sql.Statement.executeUpdate|java.sql.Statement.execute|java.sql.Statement.addBatch|
+|java.sql.Connection.nativeSQL|java.sql.Connection.prepareCall|java.sql.Connection.prepareStatement|
+</value>
          </property>
       </properties>
   

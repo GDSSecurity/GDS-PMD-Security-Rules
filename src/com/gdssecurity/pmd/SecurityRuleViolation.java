@@ -14,27 +14,24 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-import com.gdssecurity.pmd.smap.SmapFileReader;
-import com.gdssecurity.pmd.smap.SmapResolver;
-
-import net.sourceforge.pmd.IRuleViolation;
 import net.sourceforge.pmd.Rule;
 import net.sourceforge.pmd.RuleContext;
 import net.sourceforge.pmd.RuleViolation;
-import net.sourceforge.pmd.ast.ASTClassOrInterfaceBodyDeclaration;
-import net.sourceforge.pmd.ast.ASTClassOrInterfaceDeclaration;
-import net.sourceforge.pmd.ast.ASTCompilationUnit;
-import net.sourceforge.pmd.ast.ASTFieldDeclaration;
-import net.sourceforge.pmd.ast.ASTFormalParameter;
-import net.sourceforge.pmd.ast.ASTLocalVariableDeclaration;
-import net.sourceforge.pmd.ast.ASTMethodDeclaration;
-import net.sourceforge.pmd.ast.ASTTypeDeclaration;
-import net.sourceforge.pmd.ast.ASTVariableDeclaratorId;
-import net.sourceforge.pmd.ast.CanSuppressWarnings;
-import net.sourceforge.pmd.ast.SimpleNode;
+import net.sourceforge.pmd.lang.ast.Node;
+import net.sourceforge.pmd.lang.java.ast.ASTClassOrInterfaceBodyDeclaration;
+import net.sourceforge.pmd.lang.java.ast.ASTClassOrInterfaceDeclaration;
+import net.sourceforge.pmd.lang.java.ast.ASTCompilationUnit;
+import net.sourceforge.pmd.lang.java.ast.ASTFormalParameter;
+import net.sourceforge.pmd.lang.java.ast.ASTLocalVariableDeclaration;
+import net.sourceforge.pmd.lang.java.ast.ASTMethodDeclaration;
+import net.sourceforge.pmd.lang.java.ast.ASTTypeDeclaration;
+import net.sourceforge.pmd.lang.java.ast.CanSuppressWarnings;
+
+import com.gdssecurity.pmd.smap.SmapFileReader;
+import com.gdssecurity.pmd.smap.SmapResolver;
 
 
-public class SecurityRuleViolation implements Comparator<IRuleViolation>, IRuleViolation {
+public class SecurityRuleViolation implements Comparator<RuleViolation>, RuleViolation {
     
     private Rule rule;
     private String description;
@@ -56,7 +53,8 @@ public class SecurityRuleViolation implements Comparator<IRuleViolation>, IRuleV
     private int javaBeginLine; 
     private int javaEndLine; 
    
-    public int compare(IRuleViolation r1, IRuleViolation r2) {
+    @Override
+	public int compare(RuleViolation r1, RuleViolation r2) {
         if (!r1.getFilename().equals(r2.getFilename())) {
             return r1.getFilename().compareTo(r2.getFilename());
         }
@@ -77,7 +75,7 @@ public class SecurityRuleViolation implements Comparator<IRuleViolation>, IRuleV
         return r1.getBeginLine() - r2.getBeginLine();
     }
     
-    public SecurityRuleViolation(Rule rule, RuleContext ctx, SimpleNode node, String specificMsg, String variable, String type) {
+    public SecurityRuleViolation(Rule rule, RuleContext ctx, Node node, String specificMsg, String variable, String type) {
 
         this.rule = rule;
         this.javaFileName = ctx.getSourceCodeFilename();
@@ -88,13 +86,9 @@ public class SecurityRuleViolation implements Comparator<IRuleViolation>, IRuleV
             if (node.getFirstParentOfType(ASTClassOrInterfaceDeclaration.class)
                     == null) {
 	            
-                className = "";
-            } else {
-	            
-                className = node.getScope().getEnclosingClassScope().getClassName()
-                        == null
-                                ? ""
-                                : node.getScope().getEnclosingClassScope().getClassName();
+                this.className = "";
+            } else {            	
+            	this.className = node.getFirstParentOfType(ASTClassOrInterfaceDeclaration.class).getImage();
             }
 	        
             String qualifiedName = null;
@@ -103,33 +97,23 @@ public class SecurityRuleViolation implements Comparator<IRuleViolation>, IRuleV
 
             for (ASTClassOrInterfaceDeclaration parent : parents) {
                 if (qualifiedName == null) {
-                    qualifiedName = parent.getScope().getEnclosingClassScope().getClassName();
+                    qualifiedName = parent.getImage();
                 } else {
-                    qualifiedName = parent.getScope().getEnclosingClassScope().getClassName()
-                            + "$" + qualifiedName;
+                    qualifiedName = parent.getImage() + "$" + qualifiedName;
                 }
             }
-	        
-            if (!"net.sourceforge.pmd.symboltable.SourceFileScope".equals(
-                    node.getScope().getClass().getName())) {
-                className = node.getScope().getEnclosingClassScope().getClassName()
-                        == null
-                                ? ""
-                                : qualifiedName;
+            ASTMethodDeclaration method = node.getFirstParentOfType(ASTMethodDeclaration.class);
+            if (method != null) {
+            	this.methodName = method.getMethodName();
             }
-	        
-            methodName = node.getFirstParentOfType(ASTMethodDeclaration.class)
-                    == null
-                            ? ""
-                            : node.getScope().getEnclosingMethodScope().getName();
-	
-            packageName = node.getScope().getEnclosingSourceFileScope().getPackageName()
-                    == null
-                            ? ""
-                            : node.getScope().getEnclosingSourceFileScope().getPackageName();
-	
-            javaBeginLine = node.getBeginLine(); 
-            javaEndLine = node.getEndLine(); 
+            ASTCompilationUnit compilationUnit = node.getFirstParentOfType(ASTCompilationUnit.class);
+            if (compilationUnit != null && compilationUnit.getPackageDeclaration()!= null){
+            	this.packageName = compilationUnit.getPackageDeclaration().getPackageNameImage();
+            }
+
+
+            this.javaBeginLine = node.getBeginLine(); 
+            this.javaEndLine = node.getEndLine(); 
 
             if (this.javaFileName.indexOf("WEB-INF") > 0) {
                 int webRootDirPos = this.javaFileName.indexOf("WEB-INF");
@@ -142,24 +126,24 @@ public class SecurityRuleViolation implements Comparator<IRuleViolation>, IRuleV
                 SmapFileReader r = new SmapFileReader(new File(smapFileName));
                 SmapResolver resolver = new SmapResolver(r);
 				
-                fileName = webRootDirName
-                        + resolver.getJspFileName(javaBeginLine, 0); 
-                beginLine = resolver.unmangle(javaBeginLine, 0); 
-                endLine = resolver.unmangle(javaEndLine, 0); 
+                this.fileName = webRootDirName
+                        + resolver.getJspFileName(this.javaBeginLine, 0); 
+                this.beginLine = resolver.unmangle(this.javaBeginLine, 0); 
+                this.endLine = resolver.unmangle(this.javaEndLine, 0); 
             } else {
-                fileName = javaFileName;
-                beginLine = javaBeginLine;
-                endLine = javaEndLine;
+                this.fileName = this.javaFileName;
+                this.beginLine = this.javaBeginLine;
+                this.endLine = this.javaEndLine;
             }
 
             if (specificMsg == "") {
                 this.description = "No message for rule violation. Code snippet: "
-                        + Utils.getCodeSnippet(fileName, beginLine, endLine);
+                        + Utils.getCodeSnippet(this.fileName, this.beginLine, this.endLine);
             } else {
                 this.description = specificMsg;
             }
 	
-            List<SimpleNode> parentTypes = new ArrayList<SimpleNode>(
+            List<Node> parentTypes = new ArrayList<Node>(
                     node.getParentsOfType(ASTTypeDeclaration.class));
 
             if (node instanceof ASTTypeDeclaration) {
@@ -182,95 +166,107 @@ public class SecurityRuleViolation implements Comparator<IRuleViolation>, IRuleV
             }
             if (node instanceof ASTCompilationUnit) {
                 for (int i = 0; i < node.jjtGetNumChildren(); i++) {
-                    SimpleNode n = (SimpleNode) node.jjtGetChild(i);
+                    Node n = node.jjtGetChild(i);
 
                     if (n instanceof ASTTypeDeclaration) {
                         parentTypes.add(n);
                     }
                 }
             }
-            for (SimpleNode parentType : parentTypes) {
+            for (Node parentType : parentTypes) {
                 CanSuppressWarnings t = (CanSuppressWarnings) parentType;
 
                 if (t.hasSuppressWarningsAnnotationFor(getRule())) {
-                    isSuppressed = true;
+                    this.isSuppressed = true;
                 }
             }
         } else {
-            className = "";
-            methodName = "";
-            packageName = "";
-            fileName = "";
+            this.className = "";
+            this.methodName = "";
+            this.packageName = "";
+            this.fileName = "";
         }
     }
 
-    public Rule getRule() {
-        return rule;
+    @Override
+	public Rule getRule() {
+        return this.rule;
     }
 	
-    public boolean isSuppressed() {
+    @Override
+	public boolean isSuppressed() {
         return this.isSuppressed;
     }
 	
-    public int getBeginColumn() {
-        return beginColumn;
+    @Override
+	public int getBeginColumn() {
+        return this.beginColumn;
     }
 	
-    public int getEndColumn() {
-        return endColumn;
+    @Override
+	public int getEndColumn() {
+        return this.endColumn;
     }
 	
-    public String getDescription() {
-        return description;
+    @Override
+	public String getDescription() {
+        return this.description;
     }
 	
-    public String getFilename() {
-        return fileName;
+    @Override
+	public String getFilename() {
+        return this.fileName;
     }
 	
-    public String getClassName() {
-        return className;
+    @Override
+	public String getClassName() {
+        return this.className;
     }
 	
-    public String getMethodName() {
-        return methodName;
+    @Override
+	public String getMethodName() {
+        return this.methodName;
     }
 	
-    public String getPackageName() {
-        return packageName;
+    @Override
+	public String getPackageName() {
+        return this.packageName;
     }
 	
-    public int getBeginLine() {
-        return beginLine;
+    @Override
+	public int getBeginLine() {
+        return this.beginLine;
     }
 	
-    public int getEndLine() {
-        return endLine;
+    @Override
+	public int getEndLine() {
+        return this.endLine;
     }
 	
-    public String getVariableName() {
-        return variableName;
+    @Override
+	public String getVariableName() {
+        return this.variableName;
     }
 	
     @Override
     public String toString() {
         return getFilename() + ":" + getRule() + ":" + getDescription() + ":"
-                + beginLine;
+                + this.beginLine;
     }
 	
     public int getJavaBeginLine() {
-        return javaBeginLine;
+        return this.javaBeginLine;
     }
 	
     public int getJavaEndLine() {
-        return javaEndLine;
+        return this.javaEndLine;
     }
     
     public String getJavaFileName() {
-        return javaFileName;
+        return this.javaFileName;
     }
     
     public String getType() {
-        return type;
+        return this.type;
     }
 }

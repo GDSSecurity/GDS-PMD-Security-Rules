@@ -9,8 +9,13 @@
 package com.gdssecurity.pmd.smap;
 
 
-import java.util.*;
-import java.io.IOException;
+import java.util.Collection;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.TreeMap;
 
 
 public class SmapResolver {
@@ -50,7 +55,8 @@ public class SmapResolver {
         this.reader = reader;
     }
 
-    public String toString() {
+    @Override
+	public String toString() {
         return reader.toString();
     }
         

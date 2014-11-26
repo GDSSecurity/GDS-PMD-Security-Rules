@@ -18,27 +18,35 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-import com.gdssecurity.pmd.SecurityRuleViolation;
-import com.gdssecurity.pmd.Utils;
-
-import net.sourceforge.pmd.IRuleViolation;
-import net.sourceforge.pmd.AbstractJavaRule;
 import net.sourceforge.pmd.PropertyDescriptor;
 import net.sourceforge.pmd.Report;
 import net.sourceforge.pmd.Rule;
 import net.sourceforge.pmd.RuleContext;
-import net.sourceforge.pmd.ast.SimpleNode;
-import net.sourceforge.pmd.properties.StringProperty;
+import net.sourceforge.pmd.RuleViolation;
+import net.sourceforge.pmd.lang.ast.Node;
+import net.sourceforge.pmd.lang.java.rule.AbstractJavaRule;
+import net.sourceforge.pmd.lang.rule.properties.StringMultiProperty;
+
+import com.gdssecurity.pmd.SecurityRuleViolation;
+import com.gdssecurity.pmd.Utils;
 
 
 public class BaseSecurityRule extends AbstractJavaRule {
     private static final Logger LOG = Logger.getLogger(
             "com.gdssecurity.pmd.rules");
     private static FileHandler fileHandler; 
+
+	protected static HashSet<String> sources = new HashSet<String>();
 	
-    private static HashSet<String> sources = new HashSet<String>();
-    private static PropertyDescriptor sourceDescriptor = new StringProperty(
-            "sources", "",
+	
+	public BaseSecurityRule() {
+		super();
+		this.propertyDescriptors.add(sourceDescriptor);
+	}
+
+
+    private static PropertyDescriptor<String[]> sourceDescriptor = new StringMultiProperty(
+            "sources", "TODO",
             new String[] {
         "javax.servlet.http.HttpServletRequest.getParameter" }, 1.0f, '|');
 	
@@ -46,16 +54,19 @@ public class BaseSecurityRule extends AbstractJavaRule {
         return sources;
     }
     
-    public void start(RuleContext ctx) {
+    @Override
+	public void start(RuleContext ctx) {
         String methodMsg = "AbstractSecurityRule::start";
 
         LOG.fine(methodMsg);
         if (sources.size() < 1) {
-            sources = Utils.arrayAsHashSet(getStringProperties(sourceDescriptor));
+            sources = Utils.arrayAsHashSet(getProperty(sourceDescriptor));
         }
     }
 	
-    public void apply(List list, RuleContext rulecontext) {
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+	@Override
+	public void apply(List list, RuleContext rulecontext) {
         String methodMsg = "AbstractSecurityRule::apply";
 
         LOG.fine(methodMsg);
@@ -88,14 +99,13 @@ public class BaseSecurityRule extends AbstractJavaRule {
         return LOG;
     }
     
-    protected final void addSecurityViolation(Rule rule, RuleContext ctx, SimpleNode simpleNode, String message, String variableName, String type) {
-        Report rpt = ctx.getReport();
-    	   	
+    protected final void addSecurityViolation(Rule rule, RuleContext ctx, Node simpleNode, String message, String variableName, String type) {
+        Report rpt = ctx.getReport();       
         boolean isNewSecurityViolation = true;
     	
         if (rpt.getViolationTree().size() > 0) {
-            for (Iterator<IRuleViolation> i = rpt.iterator(); i.hasNext();) {
-                IRuleViolation ruleViolation = i.next();
+            for (Iterator<RuleViolation> i = rpt.iterator(); i.hasNext();) {
+                RuleViolation ruleViolation = i.next();
 	    		
                 if (ruleViolation instanceof SecurityRuleViolation) {
                     SecurityRuleViolation secRuleViolation = (SecurityRuleViolation) ruleViolation;	    		
@@ -113,7 +123,8 @@ public class BaseSecurityRule extends AbstractJavaRule {
             }   
         }
     	
-        if (isNewSecurityViolation == true) { 
+        if (isNewSecurityViolation) { 
+        	
             LOG.log(Level.FINE,
                     "*** Adding security violation to report for rule "
                     + rule.getName() + " in " + ctx.getSourceCodeFilename()
@@ -134,4 +145,5 @@ public class BaseSecurityRule extends AbstractJavaRule {
         }   	
     }
    
+    
 }
