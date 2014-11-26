@@ -20,14 +20,16 @@ public class SmapFileReader implements SmapReader {
         this.file = file;
     }
     
-    public String toString() {
+    @Override
+	public String toString() {
         if (file != null) {
             return file.toString();
         }
         return null;
     }
     
-    public String readSmap() {
+    @Override
+	public String readSmap() {
         if (file != null) {
             try {
                 FileReader fr = new FileReader(file);
