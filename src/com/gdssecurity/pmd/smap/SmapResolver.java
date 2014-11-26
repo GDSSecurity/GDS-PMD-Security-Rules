@@ -9,11 +9,8 @@
 package com.gdssecurity.pmd.smap;
 
 
-import java.util.Collection;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 
@@ -42,13 +39,13 @@ public class SmapResolver {
     
     private String outputFileName = null;
     
-    private Hashtable fsection = new Hashtable(3);
+    private Map<String, String> fsection = new Hashtable<>(3);
     
     private boolean fsection_sourceNameSourcePath = false;
     
-    private Map jsp2java = new TreeMap();
+    private Map<String, String> jsp2java = new TreeMap<>();
     
-    private Map java2jsp = new TreeMap();
+    private Map<String, String> java2jsp = new TreeMap<>();
 
     public SmapResolver(SmapReader reader) {
         this.resolved = resolve(reader.readSmap());
@@ -77,7 +74,6 @@ public class SmapResolver {
         
         String fileIndex = null;
         
-        boolean cont = true;
         
         while (st.hasMoreTokens()) {
             String token = st.nextToken();
@@ -101,7 +97,6 @@ public class SmapResolver {
                 sectionCounter = 0;
                 fileIndex = "0";
             } else if (END_SECTION.equals(token) && (jspStratumSection)) {
-                cont = false;
                 lineSection = false;
                 fileSection = false;
                 sectionCounter = 0;
@@ -206,8 +201,7 @@ public class SmapResolver {
         int javaIndex;
 
         if (commaPresent != -1) {
-            outputIncrement = Integer.parseInt(
-                    javaLine.substring(commaPresent + 1));
+            outputIncrement = Integer.parseInt(javaLine.substring(commaPresent + 1));
             javaIndex = Integer.parseInt(javaLine.substring(0, commaPresent));
         } else {
             outputIncrement = 1;
@@ -254,39 +248,30 @@ public class SmapResolver {
     }
     
     private String getFileNameByIndex(String index) {
-        return (String) fsection.get(index);
+        return fsection.get(index);
     }
     
-    private String getIndexByFileName(String fname) {
-        Set s = fsection.entrySet();
-        Iterator i = s.iterator();
-
-        while (i.hasNext()) {
-            Map.Entry mentry = (Map.Entry) i.next();
-            String value = (String) mentry.getValue();
-            
+    private String getIndexByFileName(String fname) {    	
+    	for (Map.Entry<String, String> mentry: fsection.entrySet()){
+    		String value =  mentry.getValue();            
             if (value.equalsIgnoreCase(fname)) {
                 return mentry.getKey().toString();
             }
-        }
+    	}
         return null;
     }
     
     public String getSourcePath(String fname) {
-        Set s = fsection.entrySet();
-        Iterator i = s.iterator();
-
-        while (i.hasNext()) {
-            Map.Entry mentry = (Map.Entry) i.next();
-            String value = (String) mentry.getValue();
-            int delim = value.lastIndexOf(":");
-            String sourceName = value.substring(0, delim);
-            String sourcePath = value.substring(delim + 1);
-            
-            if (sourceName.equalsIgnoreCase(fname)) {
-                return sourcePath;
-            }
-        }
+    	for (Map.Entry<String, String> mentry: fsection.entrySet()){
+    		 String value =  mentry.getValue();
+             int delim = value.lastIndexOf(":");
+             String sourceName = value.substring(0, delim);
+             String sourcePath = value.substring(delim + 1);
+             
+             if (sourceName.equalsIgnoreCase(fname)) {
+                 return sourcePath;
+             }
+    	}
         return null;
     }
 
@@ -294,22 +279,19 @@ public class SmapResolver {
         return this.resolved;
     }
     
-    public Map getFileNames() {
-        Hashtable h = new Hashtable(fsection.size());
-        Collection c = fsection.values();
-        Iterator i = c.iterator();
+    public Map<Integer, String> getFileNames() {
+        Map<Integer, String> h = new Hashtable<>(fsection.size());
         int counter = 0;
-
-        while (i.hasNext()) {
-            h.put(new Integer(counter++), i.next());
+        for (String fileName: fsection.values()){
+        	h.put(counter++, fileName);
         }
         return h;
     }
     
     public String getPrimaryJspFileName() {
-        TreeMap tm = new TreeMap(fsection);
-        Object o = tm.firstKey();
-        String s = (String) fsection.get(o);
+        TreeMap<String, String> tm = new TreeMap<>(fsection);
+        String o = tm.firstKey();
+        String s = fsection.get(o);
         
         return s;
     }
@@ -329,7 +311,7 @@ public class SmapResolver {
 
     public String getJspFileName(int line, int col) {
         String key = Integer.toString(line);
-        String value = (String) java2jsp.get(key);
+        String value = java2jsp.get(key);
         
         if (value == null) {
             return null;
@@ -347,7 +329,7 @@ public class SmapResolver {
         }
         String key = "".concat(Integer.toString(line)).concat("#").concat(
                 fileIndex);
-        String value = (String) jsp2java.get(key);
+        String value = jsp2java.get(key);
 
         if (value == null) {
             return -1;
@@ -357,7 +339,7 @@ public class SmapResolver {
 
     public int unmangle(int line, int col) {
         String key = Integer.toString(line);
-        String value = (String) java2jsp.get(key);
+        String value = java2jsp.get(key);
 
         if (value == null) {
             return -1;

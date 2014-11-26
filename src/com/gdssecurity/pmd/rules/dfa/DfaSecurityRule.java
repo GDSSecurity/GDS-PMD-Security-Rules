@@ -90,9 +90,8 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
         }
     }
 	
-    @SuppressWarnings("rawtypes")
 	@Override
-	public void apply(List list, RuleContext rulecontext) {
+	public void apply(List<? extends Node>  list, RuleContext rulecontext) {
         String methodMsg = "DfaSecurityRule::apply";
 
         LOG.fine(methodMsg);
@@ -202,8 +201,8 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
     }
     private void processDataFlow(Node node, String xpath){
         try { 
-        	@SuppressWarnings("unchecked")
-			List<Node> statements = (List<Node>) node.findChildNodesWithXPath(xpath);
+
+			List<? extends Node> statements =  node.findChildNodesWithXPath(xpath);
         	if (statements != null && statements.size() > 0) {
                 for (int i = 0; i < node.getDataFlowNode().getFlow().size(); i++) {					
                     for (int j = 0; j < statements.size(); j++) {

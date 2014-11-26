@@ -32,11 +32,9 @@ public class Utils {
             "com.gdssecurity.pmd.rules");
 	
     public static String getCodeSnippet(String fileName, int start, int end) {
-        StringBuffer sb = new StringBuffer();
-        BufferedReader br = null;
+        StringBuilder sb = new StringBuilder();
         
-        try {
-            br = new BufferedReader(new FileReader(new File(fileName)));
+        try (BufferedReader br = new BufferedReader(new FileReader(new File(fileName)));){
             int lintCtr = 1;
 
             for (String s = null; (s = br.readLine()) != null;) {
@@ -53,17 +51,7 @@ public class Utils {
             LOG.warning(
                     "Unexpected error while retrieving code snippet from "
                             + fileName + " " + ioe.getStackTrace().toString());
-        }
-        finally {
-        	if (br != null) {
-        		try {
-					br.close();
-				} catch (IOException e) {
-					// 
-				}
-        	}
-        }
-        
+        }        
         return sb.toString();
     }
 	

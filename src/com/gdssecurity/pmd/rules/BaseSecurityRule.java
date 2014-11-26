@@ -64,9 +64,8 @@ public class BaseSecurityRule extends AbstractJavaRule {
         }
     }
 	
-    @SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
-	public void apply(List list, RuleContext rulecontext) {
+	public void apply(List<? extends Node> list, RuleContext rulecontext) {
         String methodMsg = "AbstractSecurityRule::apply";
 
         LOG.fine(methodMsg);

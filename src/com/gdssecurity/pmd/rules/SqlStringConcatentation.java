@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
 
 import net.sourceforge.pmd.PropertyDescriptor;
 import net.sourceforge.pmd.RuleContext;
+import net.sourceforge.pmd.lang.ast.Node;
 import net.sourceforge.pmd.lang.java.ast.ASTAdditiveExpression;
 import net.sourceforge.pmd.lang.java.ast.ASTName;
 import net.sourceforge.pmd.lang.java.rule.regex.RegexHelper;
@@ -86,9 +87,9 @@ public class SqlStringConcatentation extends BaseSecurityRule {
         }
     }
 
-    @SuppressWarnings("rawtypes")
+
 	@Override
-	public void apply(List list, RuleContext rulecontext) {
+	public void apply(List<? extends Node> list, RuleContext rulecontext) {
         LOG.finest("Analyzing file " + rulecontext.getSourceCodeFilename());
         init();
         super.apply(list, rulecontext);
