@@ -15,6 +15,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.LineNumberReader;
 
+import com.gdssecurity.pmd.Utils;
+
 
 public class SmapFileReader implements SmapReader {
         
@@ -35,7 +37,9 @@ public class SmapFileReader implements SmapReader {
     @Override
 	public String readSmap() {
         if (file != null) {
-            try (LineNumberReader lnr = new LineNumberReader( new FileReader(file))){
+        	LineNumberReader lnr = null;
+            try {
+            	lnr = new LineNumberReader( new FileReader(file));
                 String line = "";
                 String out = "";
 
@@ -48,6 +52,9 @@ public class SmapFileReader implements SmapReader {
                 return null;
             } catch (IOException ioe) {
                 return null;
+            }
+            finally {
+            	Utils.close(lnr);
             }
         }
         return null;

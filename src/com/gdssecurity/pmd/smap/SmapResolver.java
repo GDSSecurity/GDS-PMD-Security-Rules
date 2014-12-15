@@ -39,13 +39,13 @@ public class SmapResolver {
     
     private String outputFileName = null;
     
-    private Map<String, String> fsection = new Hashtable<>(3);
+    private Map<String, String> fsection = new Hashtable<String, String>(3);
     
     private boolean fsection_sourceNameSourcePath = false;
     
-    private Map<String, String> jsp2java = new TreeMap<>();
+    private Map<String, String> jsp2java = new TreeMap<String, String>();
     
-    private Map<String, String> java2jsp = new TreeMap<>();
+    private Map<String, String> java2jsp = new TreeMap<String, String>();
 
     public SmapResolver(SmapReader reader) {
         this.resolved = resolve(reader.readSmap());
@@ -280,7 +280,7 @@ public class SmapResolver {
     }
     
     public Map<Integer, String> getFileNames() {
-        Map<Integer, String> h = new Hashtable<>(fsection.size());
+        Map<Integer, String> h = new Hashtable<Integer,String>(fsection.size());
         int counter = 0;
         for (String fileName: fsection.values()){
         	h.put(counter++, fileName);
@@ -289,7 +289,7 @@ public class SmapResolver {
     }
     
     public String getPrimaryJspFileName() {
-        TreeMap<String, String> tm = new TreeMap<>(fsection);
+        TreeMap<String, String> tm = new TreeMap<String, String>(fsection);
         String o = tm.firstKey();
         String s = fsection.get(o);
         

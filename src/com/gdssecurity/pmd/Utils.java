@@ -10,6 +10,7 @@ package com.gdssecurity.pmd;
 
 
 import java.io.BufferedReader;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -33,8 +34,9 @@ public class Utils {
 	
     public static String getCodeSnippet(String fileName, int start, int end) {
         StringBuilder sb = new StringBuilder();
-        
-        try (BufferedReader br = new BufferedReader(new FileReader(new File(fileName)));){
+        BufferedReader br = null;
+        try {
+        	br = new BufferedReader(new FileReader(new File(fileName)));
             int lintCtr = 1;
 
             for (String s = null; (s = br.readLine()) != null;) {
@@ -51,7 +53,10 @@ public class Utils {
             LOG.warning(
                     "Unexpected error while retrieving code snippet from "
                             + fileName + " " + ioe.getStackTrace().toString());
-        }        
+        } 
+        finally {
+        	close(br);
+        }
         return sb.toString();
     }
 	
@@ -101,5 +106,21 @@ public class Utils {
             hashSet.add(str);
         }
         return hashSet;
+    }
+    
+    public static void close(Closeable closeable) {
+    	try {
+    		if (closeable != null) {
+    			closeable.close();
+    		}
+    	}
+    	catch (Exception e) {
+    		//
+    	}
+    }
+    public static void close(Closeable... closeables) {
+    	for (Closeable closeable: closeables) {
+    		close (closeable);
+    	}
     }
 }
