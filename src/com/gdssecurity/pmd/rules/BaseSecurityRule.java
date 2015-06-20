@@ -32,8 +32,7 @@ import com.gdssecurity.pmd.Utils;
 
 
 public class BaseSecurityRule extends AbstractJavaRule {
-    private static final Logger LOG = Logger.getLogger(
-            "com.gdssecurity.pmd.rules");
+    private static final Logger LOG = Logger.getLogger("com.gdssecurity.pmd.rules");
     private static FileHandler fileHandler; 
 
 	protected static HashSet<String> sources = new HashSet<String>();

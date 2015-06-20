@@ -34,7 +34,8 @@ public class SmapFileReader implements SmapReader {
         return null;
     }
     
-    @Override
+    @SuppressWarnings("resource")
+	@Override
 	public String readSmap() {
         if (file != null) {
         	LineNumberReader lnr = null;

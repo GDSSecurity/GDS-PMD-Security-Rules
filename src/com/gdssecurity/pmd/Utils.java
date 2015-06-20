@@ -27,12 +27,16 @@ import net.sourceforge.pmd.lang.java.ast.ASTName;
 import net.sourceforge.pmd.lang.java.ast.ASTPrimaryExpression;
 
 
-public class Utils {
+public final class Utils {
 
-    private static final Logger LOG = Logger.getLogger(
-            "com.gdssecurity.pmd.rules");
+    private static final Logger LOG = Logger.getLogger("com.gdssecurity.pmd.rules");
 	
-    public static String getCodeSnippet(String fileName, int start, int end) {
+    private Utils () {
+    	throw new AssertionError("No instances allowed");
+    }
+    
+    @SuppressWarnings("resource")
+	public static String getCodeSnippet(String fileName, int start, int end) {
         StringBuilder sb = new StringBuilder();
         BufferedReader br = null;
         try {
