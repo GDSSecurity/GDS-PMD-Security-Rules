@@ -21,6 +21,7 @@ import net.sourceforge.pmd.PropertyDescriptor;
 import net.sourceforge.pmd.RuleContext;
 import net.sourceforge.pmd.lang.ast.Node;
 import net.sourceforge.pmd.lang.dfa.DataFlowNode;
+import net.sourceforge.pmd.lang.dfa.NodeType;
 import net.sourceforge.pmd.lang.dfa.VariableAccess;
 import net.sourceforge.pmd.lang.dfa.pathfinder.CurrentPath;
 import net.sourceforge.pmd.lang.dfa.pathfinder.DAAPathFinder;
@@ -162,9 +163,10 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
                 "ENTRY " + visitedClass + "." + visitedMethod);
 
         this.rc = (RuleContext) data;
+               
         processReturnStatements(astMethodDeclaration);
         processThrowsStatements(astMethodDeclaration);
-		
+
         runFinder(astMethodDeclaration, visitedMethod);
 
 
@@ -177,8 +179,8 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
         
         return data;
     }
-    
-    private void runFinder(Node astMethodDeclaration, String visitedMethod) {
+
+	private void runFinder(Node astMethodDeclaration, String visitedMethod) {
         DataFlowNode rootDataFlowNode = astMethodDeclaration.getDataFlowNode().getFlow().get(0);
 		
         this.methodName = visitedMethod;
@@ -204,10 +206,14 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
 			List<? extends Node> statements =  node.findChildNodesWithXPath(xpath);
         	if (statements != null && statements.size() > 0) {
-                for (int i = 0; i < node.getDataFlowNode().getFlow().size(); i++) {					
-                    for (int j = 0; j < statements.size(); j++) {
-                        if (node.getDataFlowNode().getFlow().get(i).equals(statements.get(j).getDataFlowNode())) {
-                            this.additionalDataFlowNodes.add(node.getDataFlowNode().getFlow().get(i + 1));
+                for (int i = 0; i < node.getDataFlowNode().getFlow().size(); i++) {
+                	DataFlowNode current = node.getDataFlowNode().getFlow().get(i); 
+                    for (int j = 0; j < statements.size(); j++) {                    	
+                        if (current.equals(statements.get(j).getDataFlowNode())) {
+                        	DataFlowNode next = node.getDataFlowNode().getFlow().get(i + 1);                       	
+                        	if (!next.isType(NodeType.IF_EXPR)) {
+                        		this.additionalDataFlowNodes.add(next);
+                        	}                        	
                         } else {
                             LOG.log(Level.FINE, "methodMsg",
                                     "Unexpected condition when checking for ReturnStatement nodes");
@@ -261,12 +267,12 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
 
 // Commented because hangs in some cases.
-//            if (this.additionalDataFlowNodes.size() > 0) {
-//                DataFlowNode additionalRootNode = this.additionalDataFlowNodes.remove(0);
-//                DAAPathFinder daaPathFinder = new DAAPathFinder(additionalRootNode, this, MAX_DATAFLOWS);
-//                this.methodDataFlowCount = 0;				
-//                daaPathFinder.run();
-//            }
+            if (this.additionalDataFlowNodes.size() > 0) {
+                DataFlowNode additionalRootNode = this.additionalDataFlowNodes.remove(0);                
+                DAAPathFinder daaPathFinder = new DAAPathFinder(additionalRootNode, this, MAX_DATAFLOWS);
+                this.methodDataFlowCount = 0;				
+                daaPathFinder.run();
+            }
 			
         } else {
             LOG.log(Level.INFO, methodMsg,
