@@ -11,7 +11,7 @@
    		This ruleset contains rules that are intended to detect Insecure Cryptographic Storage weaknesses.
    </description>
    
-   <rule class="net.sourceforge.pmd.rules.XPathRule" name="InsecureCryptographicAlgorithm" message="Insecure Cryptographic Algorithm" externalInfoUrl="https://www.owasp.org/index.php/Top_10_2010-A7-Insecure_Cryptographic_Storage">
+   <rule class="net.sourceforge.pmd.lang.rule.XPathRule" name="InsecureCryptographicAlgorithm" message="Insecure Cryptographic Algorithm" externalInfoUrl="https://www.owasp.org/index.php/Top_10_2010-A7-Insecure_Cryptographic_Storage" language="java">
      <description>
   		This rule is intended to identify instances of weak cryptographic algorithms. Violations should be manually reviewed and in most cases the algorithm should be replaced with a stronger alternative. Additional algorithms should be added for increased coverage.
   </description>
