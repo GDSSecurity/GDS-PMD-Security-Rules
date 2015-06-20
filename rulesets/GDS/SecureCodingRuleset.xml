@@ -28,8 +28,11 @@
    <rule ref="rulesets/GDS/OWASP/A1 - Injection.xml"/>
    <rule ref="rulesets/GDS/OWASP/A2 - Cross-Site Scripting.xml"/>
    <rule ref="rulesets/GDS/OWASP/A7 - Insecure Cryptographic Storage.xml"/>
-   <rule ref="rulesets/GDS/OWASP/A8 - Failure to Restrict URL Access.xml"/>
+   <!--  Requires additional configuration -->
+   <!-- <rule ref="rulesets/GDS/OWASP/A8 - Failure to Restrict URL Access.xml"/> -->
    <rule ref="rulesets/GDS/OWASP/A10 - Unvalidated Redirects and Forwards.xml"/>
+   
+   
    
 
    
