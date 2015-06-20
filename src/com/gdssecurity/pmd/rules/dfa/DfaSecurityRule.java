@@ -250,9 +250,9 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
                     this.currentPathTaintedVariables = new LinkedList<String>();
                     List<ASTFormalParameter> parameters = node.findDescendantsOfType(ASTFormalParameter.class);       
 					for (ASTFormalParameter parameter : parameters) {
-						ASTType tipo = parameter.getTypeNode();
+						ASTType type = parameter.getTypeNode();
 						ASTVariableDeclaratorId name1 = parameter.getFirstDescendantOfType(ASTVariableDeclaratorId.class);						
-						if (tipo.getType() != null && tipo.getType().getCanonicalName() != null && tipo.getType().getCanonicalName().startsWith("java.lang.String")){
+						if (type.getType() != null && type.getType().getCanonicalName() != null && type.getType().getCanonicalName().startsWith("java.lang.String")){
 							String name = name1.getImage();
 							this.currentPathTaintedVariables.add(name);
 						}
@@ -266,7 +266,6 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
             }
 
 
-// Commented because hangs in some cases.
             if (this.additionalDataFlowNodes.size() > 0) {
                 DataFlowNode additionalRootNode = this.additionalDataFlowNodes.remove(0);                
                 DAAPathFinder daaPathFinder = new DAAPathFinder(additionalRootNode, this, MAX_DATAFLOWS);
