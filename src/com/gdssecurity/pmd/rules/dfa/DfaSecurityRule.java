@@ -317,6 +317,9 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 	}
 
 	private boolean isTypeStringOrStringBuffer(Class<?> clazz) {
+		if (clazz == null) {
+			return false;
+		}
 		return clazz.isAssignableFrom(String.class) || clazz.isAssignableFrom(StringBuffer.class) || clazz.isAssignableFrom(StringBuilder.class);
 	}
 	
@@ -517,7 +520,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
         else if (node.hasDescendantOfType(ASTPrimaryPrefix.class) && node.hasDescendantOfType(ASTPrimarySuffix.class)){
         	ASTPrimaryPrefix prefix = node.getFirstChildOfType(ASTPrimaryPrefix.class);
         	ASTPrimarySuffix suffix = node.getFirstChildOfType(ASTPrimarySuffix.class);
-        	if (null == prefix.getImage() ){
+        	if ((prefix == null || prefix.getImage() == null) && suffix != null && suffix.getImage() != null){
         		String fieldName = suffix.getImage();
         		if (currentPathTaintedVariables.contains("this." + fieldName)){
         			currentPathTaintedVariables.add(variable);
@@ -536,22 +539,28 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
             method = node.getFirstDescendantOfType(ASTClassOrInterfaceType.class).getImage();
         } else {
         	ASTPrimaryPrefix prefix = node.getFirstChildOfType(ASTPrimaryPrefix.class);
-        	ASTName astName = prefix.getFirstChildOfType(ASTName.class);        	
-        	if (astName != null) {
+        	if (prefix == null) {
+        		ASTName astName = node.getFirstDescendantOfType(ASTName.class);
         		method = astName.getImage();
         	}
         	else {
-        		StringBuilder mName = new StringBuilder();
-        		List<ASTPrimarySuffix> suffixes = node.findChildrenOfType(ASTPrimarySuffix.class);
-        		for (ASTPrimarySuffix suffix: suffixes){
-        			if (!suffix.hasDescendantOfType(ASTArguments.class) && suffix.getImage() != null){
-        				if (mName.length() > 0) {
-        					mName.append(".");
-        				}
-        				mName.append(suffix.getImage());
-        			}
-        		}
-        		method = mName.toString();
+	        	ASTName astName = prefix.getFirstChildOfType(ASTName.class);        	
+	        	if (astName != null) {
+	        		method = astName.getImage();
+	        	}
+	        	else {
+	        		StringBuilder mName = new StringBuilder();
+	        		List<ASTPrimarySuffix> suffixes = node.findChildrenOfType(ASTPrimarySuffix.class);
+	        		for (ASTPrimarySuffix suffix: suffixes){
+	        			if (!suffix.hasDescendantOfType(ASTArguments.class) && suffix.getImage() != null){
+	        				if (mName.length() > 0) {
+	        					mName.append(".");
+	        				}
+	        				mName.append(suffix.getImage());
+	        			}
+	        		}
+	        		method = mName.toString();
+	        	}
         	}
         }
 
