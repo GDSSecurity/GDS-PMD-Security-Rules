@@ -12,8 +12,8 @@ package com.gdssecurity.pmd.rules.dfa;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,12 +35,16 @@ import net.sourceforge.pmd.lang.java.ast.ASTClassOrInterfaceType;
 import net.sourceforge.pmd.lang.java.ast.ASTConditionalExpression;
 import net.sourceforge.pmd.lang.java.ast.ASTConstructorDeclaration;
 import net.sourceforge.pmd.lang.java.ast.ASTExpression;
+import net.sourceforge.pmd.lang.java.ast.ASTFieldDeclaration;
 import net.sourceforge.pmd.lang.java.ast.ASTFormalParameter;
 import net.sourceforge.pmd.lang.java.ast.ASTMethodDeclaration;
 import net.sourceforge.pmd.lang.java.ast.ASTName;
 import net.sourceforge.pmd.lang.java.ast.ASTPrimaryExpression;
+import net.sourceforge.pmd.lang.java.ast.ASTPrimaryPrefix;
+import net.sourceforge.pmd.lang.java.ast.ASTPrimarySuffix;
 import net.sourceforge.pmd.lang.java.ast.ASTStatementExpression;
 import net.sourceforge.pmd.lang.java.ast.ASTType;
+import net.sourceforge.pmd.lang.java.ast.ASTTypeDeclaration;
 import net.sourceforge.pmd.lang.java.ast.ASTVariableDeclarator;
 import net.sourceforge.pmd.lang.java.ast.ASTVariableDeclaratorId;
 import net.sourceforge.pmd.lang.rule.properties.StringMultiProperty;
@@ -54,7 +58,7 @@ import com.gdssecurity.pmd.rules.BaseSecurityRule;
 public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
     private static final Logger LOG = getLogger();
 	
-    private LinkedList<String> currentPathTaintedVariables;
+    private Set<String> currentPathTaintedVariables;
 	
 	
     private PropertyDescriptor<String[]> sourceDescriptor = new StringMultiProperty("sources",
@@ -247,16 +251,9 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
                 DataFlowNode iDataFlowNode = iterator.next();
                 Node node = iDataFlowNode.getNode();
                 if (node instanceof ASTMethodDeclaration || node instanceof ASTConstructorDeclaration) {                	
-                    this.currentPathTaintedVariables = new LinkedList<String>();
-                    List<ASTFormalParameter> parameters = node.findDescendantsOfType(ASTFormalParameter.class);       
-					for (ASTFormalParameter parameter : parameters) {
-						ASTType type = parameter.getTypeNode();
-						ASTVariableDeclaratorId name1 = parameter.getFirstDescendantOfType(ASTVariableDeclaratorId.class);						
-						if (type.getType() != null && type.getType().getCanonicalName() != null && type.getType().getCanonicalName().startsWith("java.lang.String")){
-							String name = name1.getImage();
-							this.currentPathTaintedVariables.add(name);
-						}
-					}                   
+                    this.currentPathTaintedVariables = new HashSet<String>();
+                    addMethodParamsToTaintedVariables(node);
+                    addClassFieldsToTaintedVariables(node);
                 } else if (node instanceof ASTVariableDeclarator || node instanceof ASTStatementExpression) {
                     handleDataFlowNode(iDataFlowNode);
                 } else {
@@ -286,7 +283,48 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
     }
 
-    private void handleDataFlowNode(DataFlowNode iDataFlowNode) {
+	private void addClassFieldsToTaintedVariables(Node node) {
+        String methodMsg = "DfaSecurityRule::addClassFieldsToTaintedVariables - {0}";
+		ASTTypeDeclaration classDeclaration = node.getFirstParentOfType(ASTTypeDeclaration.class);
+		if (classDeclaration == null) {
+			return;
+		}
+		List<ASTFieldDeclaration> fields = classDeclaration.findDescendantsOfType(ASTFieldDeclaration.class);
+		for (ASTFieldDeclaration field : fields) {
+			if (isTypeStringOrStringBuffer(field.getType())) {
+				ASTVariableDeclarator declarator = field.getFirstChildOfType(ASTVariableDeclarator.class);
+				ASTVariableDeclaratorId name1 = declarator.getFirstChildOfType(ASTVariableDeclaratorId.class);
+				if (name1 != null) {
+					String name = name1.getImage();
+					LOG.log(Level.FINE, methodMsg, "Adding tainted field:" + name);
+					currentPathTaintedVariables.add("this." + name);
+				}
+			}
+		}
+		
+	}
+
+	private void addMethodParamsToTaintedVariables(Node node) {
+		List<ASTFormalParameter> parameters = node.findDescendantsOfType(ASTFormalParameter.class);       
+		for (ASTFormalParameter parameter : parameters) {
+			ASTType type = parameter.getTypeNode();
+			if (isTypeStringOrStringBuffer(type)){
+				ASTVariableDeclaratorId name1 = parameter.getFirstDescendantOfType(ASTVariableDeclaratorId.class);						
+				String name = name1.getImage();
+				this.currentPathTaintedVariables.add(name);
+			}
+		}
+	}
+
+	private boolean isTypeStringOrStringBuffer(Class<?> clazz) {
+		return clazz.isAssignableFrom(String.class) || clazz.isAssignableFrom(StringBuffer.class) || clazz.isAssignableFrom(StringBuilder.class);
+	}
+	
+    private boolean isTypeStringOrStringBuffer(ASTType type) {
+    	return type != null && type.getType() != null && type.getType().getCanonicalName() != null && type.getType().getCanonicalName().startsWith("java.lang.String");
+	}
+
+	private void handleDataFlowNode(DataFlowNode iDataFlowNode) {
 
         String methodMsg = "DfaSecurityRule::handleDataFlowNode - {0}";
 
@@ -339,17 +377,16 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
             String type = "";
             String method = "";
 			
+            Node astMethod = null;
             if (simpleNode.getFirstDescendantOfType(ASTAssignmentOperator.class) == null) {
-                method = getMethod(simpleNode.getFirstDescendantOfType(ASTPrimaryExpression.class));
-                type = Utils.getType(simpleNode.getFirstDescendantOfType(ASTPrimaryExpression.class), this.rc, method);
-            } else {
-				
-                method = getMethod(
-                        simpleNode.getFirstDescendantOfType(ASTExpression.class));
-                type = Utils.getType(
-                        simpleNode.getFirstDescendantOfType(ASTExpression.class), this.rc,
-                        method);
+            	astMethod = simpleNode.getFirstDescendantOfType(ASTPrimaryExpression.class);
             }
+            else {
+            	astMethod = simpleNode.getFirstDescendantOfType(ASTExpression.class);
+            }
+            method = getMethod(astMethod);
+            type = Utils.getType(astMethod, this.rc, method);    
+           
 
             LOG.log(Level.FINE, methodMsg, "type " + type + " invoking method " + method);
 
@@ -402,10 +439,9 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
         LOG.log(Level.FINE, methodMsg);
 
-        // FIXME ??
         ASTArguments arguments = node.getFirstDescendantOfType(ASTArguments.class);
 
-        return (arguments != null);
+        return arguments != null;
     }
 
     private void handleVariableDefinition(DataFlowNode iDataFlowNode, String variable) {
@@ -422,9 +458,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
         } else if (simpleNode.hasDescendantOfType(ASTExpression.class)) {
 			List<ASTPrimaryExpression> primaryExpressions = simpleNode.findDescendantsOfType(ASTPrimaryExpression.class);        	
         	for (ASTPrimaryExpression p: primaryExpressions) {
-        		if (p.hasDescendantOfType(ASTName.class)) {
-        			analyzeNode(p, variable);
-        		}
+       			analyzeNode(p, variable);        		
         	} 
         } else {
             LOG.log(Level.FINE, methodMsg, "Unhandled node: " + simpleNode.toString());
@@ -454,7 +488,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
     }
 
     private void analyzeNode(Node node, String variable) {
-
+    	// FIXME Revisar llamadas
         String methodMsg = "DfaSecurityRule::checkNodeForTaint - {0}";
 
         LOG.log(Level.FINE, methodMsg, "ENTRY");
@@ -475,12 +509,21 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
             } else if (isPassThrough(type, method)) {
             	//
             }
-        } else {
+        } else if (node.hasDescendantOfType(ASTName.class)){
             LOG.log(Level.FINE, methodMsg, "Initialized with variable or literal");			
             List<ASTName> astNames = node.findDescendantsOfType(ASTName.class);
-            if (astNames.size() > 0) {
-                analyzeVariable(variable, astNames);
-            }
+            analyzeVariable(variable, astNames);            
+        }
+        else if (node.hasDescendantOfType(ASTPrimaryPrefix.class) && node.hasDescendantOfType(ASTPrimarySuffix.class)){
+        	ASTPrimaryPrefix prefix = node.getFirstChildOfType(ASTPrimaryPrefix.class);
+        	ASTPrimarySuffix suffix = node.getFirstChildOfType(ASTPrimarySuffix.class);
+        	if (null == prefix.getImage() ){
+        		String fieldName = suffix.getImage();
+        		if (currentPathTaintedVariables.contains("this." + fieldName)){
+        			currentPathTaintedVariables.add(variable);
+        		}
+        	}
+        		
         }
         LOG.log(Level.FINE, methodMsg, "EXIT");
     }
@@ -492,12 +535,23 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
         if (node.hasDescendantOfType (ASTClassOrInterfaceType.class)) {
             method = node.getFirstDescendantOfType(ASTClassOrInterfaceType.class).getImage();
         } else {
-        	ASTName astName = node.getFirstDescendantOfType(ASTName.class);
+        	ASTPrimaryPrefix prefix = node.getFirstChildOfType(ASTPrimaryPrefix.class);
+        	ASTName astName = prefix.getFirstChildOfType(ASTName.class);        	
         	if (astName != null) {
         		method = astName.getImage();
         	}
         	else {
-        		method ="";
+        		StringBuilder mName = new StringBuilder();
+        		List<ASTPrimarySuffix> suffixes = node.findChildrenOfType(ASTPrimarySuffix.class);
+        		for (ASTPrimarySuffix suffix: suffixes){
+        			if (!suffix.hasDescendantOfType(ASTArguments.class) && suffix.getImage() != null){
+        				if (mName.length() > 0) {
+        					mName.append(".");
+        				}
+        				mName.append(suffix.getImage());
+        			}
+        		}
+        		method = mName.toString();
         	}
         }
 
@@ -510,42 +564,32 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
 
 	private boolean isPassThrough(String type, String method) {
-
         String methodMsg = "DfaSecurityRule::isPassthroughMethod - {0}";
-
         LOG.log(Level.FINE, methodMsg, "Not Implemented");
-
         return false;
     }
 
-    private void analyzeVariable(String variableName,
-            List<ASTName> listOfAstNames) {
+    private void analyzeVariable(String variableName, List<ASTName> listOfAstNames) {
         String methodMsg = "DfaSecurityRule::checkVariableForTaint - {0}";
 
         LOG.log(Level.FINE, methodMsg, "ENTRY");
 
-        if (listOfAstNames.size() > 0) {
-            for (int i = 0; i < listOfAstNames.size(); i++) {
-                ASTName name = listOfAstNames.get(i);
-                String var = name.getImage();
-                String type = Utils.getType(name, this.rc, var);
+		for (ASTName name : listOfAstNames) {
+			String var = name.getImage();
+			String type = Utils.getType(name, this.rc, var);
 
-                if (var.indexOf('.') != -1) {
-                    var = var.substring(var.indexOf('.') + 1);
-                }
+			if (var.indexOf('.') != -1) {
+				var = var.substring(var.indexOf('.') + 1);
+			}
 
-                LOG.log(Level.FINE, methodMsg,
-                        "Variable " + variableName + " initialized with " + var
-                        + " of type " + type);
-				
-                if (isSource(type, var) || isTaintedVariable(var)) {
-                    LOG.log(Level.FINE, methodMsg,
-                            "Adding " + variableName + " to list of taint");
-                    this.currentPathTaintedVariables.add(variableName);
-                }
-            }
+			LOG.log(Level.FINE, methodMsg, "Variable " + variableName + " initialized with " + var + " of type " + type);
 
-        }
+			if (isSource(type, var) || isTaintedVariable(var)) {
+				LOG.log(Level.FINE, methodMsg, "Adding " + variableName + " to list of taint");
+				this.currentPathTaintedVariables.add(variableName);
+			}
+
+		}
 
         LOG.log(Level.FINE, methodMsg, "EXIT");
     }
