@@ -10,9 +10,11 @@ package com.gdssecurity.pmd.rules.dfa;
 
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -59,6 +61,8 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
     private static final Logger LOG = getLogger();
 	
     private Set<String> currentPathTaintedVariables;
+    
+    private Map<String, Class<?>> fieldTypes;
 	
 	
     private PropertyDescriptor<String[]> sourceDescriptor = new StringMultiProperty("sources",
@@ -252,6 +256,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
                 Node node = iDataFlowNode.getNode();
                 if (node instanceof ASTMethodDeclaration || node instanceof ASTConstructorDeclaration) {                	
                     this.currentPathTaintedVariables = new HashSet<String>();
+                    this.fieldTypes = new HashMap<String, Class<?>>();
                     addMethodParamsToTaintedVariables(node);
                     addClassFieldsToTaintedVariables(node);
                 } else if (node instanceof ASTVariableDeclarator || node instanceof ASTStatementExpression) {
@@ -290,16 +295,19 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 			return;
 		}
 		List<ASTFieldDeclaration> fields = classDeclaration.findDescendantsOfType(ASTFieldDeclaration.class);
-		for (ASTFieldDeclaration field : fields) {
-			if (isTypeStringOrStringBuffer(field.getType())) {
+		for (ASTFieldDeclaration field : fields) {			
+				Class<?> type = field.getType();
 				ASTVariableDeclarator declarator = field.getFirstChildOfType(ASTVariableDeclarator.class);
 				ASTVariableDeclaratorId name1 = declarator.getFirstChildOfType(ASTVariableDeclaratorId.class);
 				if (name1 != null) {
 					String name = name1.getImage();
-					LOG.log(Level.FINE, methodMsg, "Adding tainted field:" + name);
-					currentPathTaintedVariables.add("this." + name);
+					fieldTypes.put(name, type);
+					if (isTypeStringOrStringBuffer(field.getType())) {
+						LOG.log(Level.FINE, methodMsg, "Adding tainted field:" + name);
+						currentPathTaintedVariables.add("this." + name);
+					}
 				}
-			}
+			
 		}
 		
 	}
@@ -388,7 +396,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
             	astMethod = simpleNode.getFirstDescendantOfType(ASTExpression.class);
             }
             method = getMethod(astMethod);
-            type = Utils.getType(astMethod, this.rc, method);    
+            type = getType(astMethod, method);    
            
 
             LOG.log(Level.FINE, methodMsg, "type " + type + " invoking method " + method);
@@ -422,7 +430,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
                 argumentName = argumentName.substring(argumentName.indexOf('.') + 1);
             }
 
-            argumentType = Utils.getType(name, this.rc, argumentName);
+            argumentType = getType(name, argumentName);
             if (isSource(argumentType, argumentName) || isTaintedVariable(argumentName)) {
                 addSecurityViolation(this, this.rc, simpleNode, getMessage(), argumentName, argumentType);
             }
@@ -498,7 +506,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
         if (isMethodCall(node)) {
             String method = getMethod(node);
-            String type = Utils.getType(node, this.rc, method);
+            String type = getType(node, method);
 
             LOG.log(Level.FINE, methodMsg,
                     "Variable " + variable + " initialized with Type: " + type
@@ -533,36 +541,9 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
     private String getMethod(Node node) {
 
-        String method = "";
+        String method = getFullMethodName(node);
         
-        if (node.hasDescendantOfType (ASTClassOrInterfaceType.class)) {
-            method = node.getFirstDescendantOfType(ASTClassOrInterfaceType.class).getImage();
-        } else {
-        	ASTPrimaryPrefix prefix = node.getFirstChildOfType(ASTPrimaryPrefix.class);
-        	if (prefix == null) {
-        		ASTName astName = node.getFirstDescendantOfType(ASTName.class);
-        		method = astName.getImage();
-        	}
-        	else {
-	        	ASTName astName = prefix.getFirstChildOfType(ASTName.class);        	
-	        	if (astName != null) {
-	        		method = astName.getImage();
-	        	}
-	        	else {
-	        		StringBuilder mName = new StringBuilder();
-	        		List<ASTPrimarySuffix> suffixes = node.findChildrenOfType(ASTPrimarySuffix.class);
-	        		for (ASTPrimarySuffix suffix: suffixes){
-	        			if (!suffix.hasDescendantOfType(ASTArguments.class) && suffix.getImage() != null){
-	        				if (mName.length() > 0) {
-	        					mName.append(".");
-	        				}
-	        				mName.append(suffix.getImage());
-	        			}
-	        		}
-	        		method = mName.toString();
-	        	}
-        	}
-        }
+        
 
         if (method.indexOf('.') != -1) {
             method = method.substring(method.indexOf('.') + 1);
@@ -570,7 +551,83 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
         return method;
     }
-
+    
+    private String getFullMethodName(Node node) {
+        if (node.hasDescendantOfType (ASTClassOrInterfaceType.class)) {
+            return node.getFirstDescendantOfType(ASTClassOrInterfaceType.class).getImage();
+        }
+		ASTPrimaryPrefix prefix = node.getFirstChildOfType(ASTPrimaryPrefix.class);
+		
+		if (prefix == null) {
+			ASTName astName = node.getFirstDescendantOfType(ASTName.class);
+			if (astName != null && astName.getImage() != null) {
+				return astName.getImage();
+			}
+		}
+		if (prefix != null) {
+			ASTName astName = prefix.getFirstChildOfType(ASTName.class);
+			if (astName != null && astName.getImage() != null) {
+				return astName.getImage();
+			}
+		}
+		StringBuilder mName = new StringBuilder();
+		List<ASTPrimarySuffix> suffixes = node.findChildrenOfType(ASTPrimarySuffix.class);
+		for (ASTPrimarySuffix suffix : suffixes) {
+			if (!suffix.hasDescendantOfType(ASTArguments.class) && suffix.getImage() != null) {
+				if (mName.length() > 0) {
+					mName.append(".");
+				}
+				mName.append(suffix.getImage());
+			}
+		}
+		return mName.toString();		
+    }
+    
+    private String getType(Node node, String method) {
+        String methodMsg = "Utils::getType - {0}";
+		
+        String cannonicalName = "";
+        Class<? extends Object> type = null;
+		
+        try {
+            if (node instanceof ASTExpression) {				
+                type = node.getFirstChildOfType(ASTPrimaryExpression.class).getFirstChildOfType(ASTName.class).getType();
+            } else if (node instanceof ASTPrimaryExpression) {
+                if (node.hasDescendantOfType(ASTClassOrInterfaceType.class)) {					
+                    type = node.getFirstDescendantOfType(ASTClassOrInterfaceType.class).getType();
+                } else {	
+                	ASTPrimaryPrefix prefix = node.getFirstChildOfType(ASTPrimaryPrefix.class);
+                	ASTName astName = prefix.getFirstChildOfType(ASTName.class);        	
+                	if (astName != null) {
+                		type = node.getFirstDescendantOfType(ASTName.class).getType();
+                	}
+                	else {
+                		ASTPrimarySuffix suffix = node.getFirstChildOfType(ASTPrimarySuffix.class);
+                		type = fieldTypes.get(suffix.getImage());
+                	}
+                    
+                }
+            } else if (node instanceof ASTName) {
+                type = ((ASTName) node).getType();
+            }            
+			if (type != null) {
+				cannonicalName = type.getCanonicalName();
+			}
+			else {
+				cannonicalName = "UNKNOWN_TYPE";
+			}
+        } catch (Exception ex1) {
+    		
+            LOG.log(Level.INFO, methodMsg,
+                    "Unable to get type for " + method + " at "
+                    + rc.getSourceCodeFilename() + " (" + node.getBeginLine()
+                    + ")");
+            cannonicalName = "UNKNOWN_TYPE";
+        }
+		
+        return cannonicalName;
+    }
+    
 
 	private boolean isPassThrough(String type, String method) {
         String methodMsg = "DfaSecurityRule::isPassthroughMethod - {0}";
@@ -585,7 +642,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
 		for (ASTName name : listOfAstNames) {
 			String var = name.getImage();
-			String type = Utils.getType(name, this.rc, var);
+			String type = getType(name, var);
 
 			if (var.indexOf('.') != -1) {
 				var = var.substring(var.indexOf('.') + 1);
