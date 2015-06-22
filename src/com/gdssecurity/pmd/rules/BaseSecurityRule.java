@@ -97,7 +97,7 @@ public class BaseSecurityRule extends AbstractJavaRule {
         return LOG;
     }
     
-    protected final void addSecurityViolation(Rule rule, RuleContext ctx, Node simpleNode, String message, String variableName, String type) {
+    protected final void addSecurityViolation(Rule rule, RuleContext ctx, Node simpleNode, String message, String variableName) {
         Report rpt = ctx.getReport();       
         boolean isNewSecurityViolation = true;
     	
@@ -129,9 +129,7 @@ public class BaseSecurityRule extends AbstractJavaRule {
                     + " Begin line: " + simpleNode.getBeginLine()
                     + " End line: " + simpleNode.getEndLine()
                     + " Violation message: " + message);
-            rpt.addRuleViolation(
-                    new SecurityRuleViolation(rule, ctx, simpleNode, message,
-                    variableName, type));
+            rpt.addRuleViolation(new SecurityRuleViolation(rule, ctx, simpleNode, message, variableName));
 
         } else {
             LOG.log(Level.FINE,

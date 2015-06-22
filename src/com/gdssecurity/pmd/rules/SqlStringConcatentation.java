@@ -140,7 +140,6 @@ public class SqlStringConcatentation extends BaseSecurityRule {
                                     new Object[] {
                                 varName, "java.lang.String",
                                 varName + " appears to be a method argument"}),
-                                    "",
                                     "");
                         } else {
                             addSecurityViolation(this, rc, astAdditiveExpression,
@@ -149,7 +148,6 @@ public class SqlStringConcatentation extends BaseSecurityRule {
                                 varName, "java.lang.String",
                                 "Check whether " + varName
                                         + " contains tainted data"}),
-                                    "",
                                     "");
                         }
                     } else if (insecureTypes.contains(varType)) {
@@ -158,7 +156,6 @@ public class SqlStringConcatentation extends BaseSecurityRule {
                                 new Object[] {
                             varName, varType,
                             varType + " is  tainted data"}),
-                                "",
                                 "");
                     } else if (safeTypes.contains(varType)) {
                             LOG.finest("Ignoring " + varType + " as this was configured as one of the safe types.");
@@ -169,7 +166,6 @@ public class SqlStringConcatentation extends BaseSecurityRule {
                             varName, varType,
                             "Check whether " + varType
                                     + " contains tainted data"}),
-                                "",
                                 "");
                     }
                 }

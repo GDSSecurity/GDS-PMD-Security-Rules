@@ -40,7 +40,7 @@ public class SecurityRuleViolation implements Comparator<RuleViolation>, RuleVio
     private String className;
     private String methodName;
     private String variableName;
-    private String type;
+
     private String packageName;
     private int beginLine; 
     private int endLine; 
@@ -75,12 +75,11 @@ public class SecurityRuleViolation implements Comparator<RuleViolation>, RuleVio
         return r1.getBeginLine() - r2.getBeginLine();
     }
     
-    public SecurityRuleViolation(Rule rule, RuleContext ctx, Node node, String specificMsg, String variable, String type) {
-
+    	
+    public SecurityRuleViolation(Rule rule, RuleContext ctx, Node node, String specificMsg, String variable) {
         this.rule = rule;
         this.javaFileName = ctx.getSourceCodeFilename();
         this.variableName = variable;
-        this.type = type;
        
         if (node != null) {
             if (node.getFirstParentOfType(ASTClassOrInterfaceDeclaration.class)
@@ -266,7 +265,5 @@ public class SecurityRuleViolation implements Comparator<RuleViolation>, RuleVio
         return this.javaFileName;
     }
     
-    public String getType() {
-        return this.type;
-    }
+
 }

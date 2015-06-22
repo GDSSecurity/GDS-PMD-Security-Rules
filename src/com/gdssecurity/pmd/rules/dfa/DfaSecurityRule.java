@@ -159,10 +159,10 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 	}
 
 	private void processReturnStatements (Node node) {
-    	processDataFlow(node, "./Block/BlockStatement/TryStatement/CatchStatement/ReturnStatement");
+    	processDataFlow(node, "./Block/BlockStatement//TryStatement/CatchStatement//ReturnStatement");
     }
     private void processThrowsStatements (Node node) {
-    	processDataFlow(node,  "./Block/BlockStatement/TryStatement/CatchStatement/ThrowStatement");
+    	processDataFlow(node,  "./Block/BlockStatement//TryStatement/CatchStatement//ThrowStatement");
     }
     private void processDataFlow(Node node, String xpath){
         try { 
@@ -172,7 +172,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 				return;
 			}
 			int i = 0;
-			for (DataFlowNode current: node.getDataFlowNode().getFlow()) {//int i = 0; i < node.getDataFlowNode().getFlow().size(); i++) {
+			for (DataFlowNode current: node.getDataFlowNode().getFlow()) {
 				for (Node statement: statements) {
 					if (current.equals(statement.getDataFlowNode())) {
 						DataFlowNode next = node.getDataFlowNode().getFlow().get(i + 1);
