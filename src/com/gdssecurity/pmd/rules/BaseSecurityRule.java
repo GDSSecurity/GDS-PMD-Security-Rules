@@ -9,14 +9,10 @@
 package com.gdssecurity.pmd.rules;
 
 
-import java.io.IOException;
+
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.FileHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 
 import net.sourceforge.pmd.PropertyDescriptor;
 import net.sourceforge.pmd.Report;
@@ -32,8 +28,6 @@ import com.gdssecurity.pmd.Utils;
 
 
 public class BaseSecurityRule extends AbstractJavaRule {
-    private static final Logger LOG = Logger.getLogger("com.gdssecurity.pmd.rules");
-    private static FileHandler fileHandler; 
 
 	protected static HashSet<String> sources = new HashSet<String>();
 	
@@ -55,47 +49,17 @@ public class BaseSecurityRule extends AbstractJavaRule {
     
     @Override
 	public void start(RuleContext ctx) {
-        String methodMsg = "AbstractSecurityRule::start";
-
-        LOG.fine(methodMsg);
-        if (sources.size() < 1) {
+        if (sources.isEmpty()) {
             sources = Utils.arrayAsHashSet(getProperty(sourceDescriptor));
         }
     }
 	
 	@Override
 	public void apply(List<? extends Node> list, RuleContext rulecontext) {
-        String methodMsg = "AbstractSecurityRule::apply";
-
-        LOG.fine(methodMsg);
         super.apply(list, rulecontext);
     }
 
-    public static Logger getLogger() {
 
-        if (LOG.getLevel() == null) {
-            LOG.setLevel(Level.OFF);
-        }
-    	
-        if (!LOG.getLevel().equals(Level.OFF)) {
-            try {
-                if (fileHandler == null) {
-                    LOG.setUseParentHandlers(false);
-                    fileHandler = new FileHandler("PMD.GDS.log");
-                    fileHandler.setFormatter(new SimpleFormatter());
-                    LOG.addHandler(fileHandler);
-                }
-            } catch (SecurityException e) {
-				
-                e.printStackTrace();
-            } catch (IOException e) {
-				
-                e.printStackTrace();
-            }
-        }
-  	
-        return LOG;
-    }
     
     protected final void addSecurityViolation(Rule rule, RuleContext ctx, Node simpleNode, String message, String variableName) {
         Report rpt = ctx.getReport();       
@@ -108,37 +72,19 @@ public class BaseSecurityRule extends AbstractJavaRule {
                 if (ruleViolation instanceof SecurityRuleViolation) {
                     SecurityRuleViolation secRuleViolation = (SecurityRuleViolation) ruleViolation;	    		
 			        	
-                    if (rule.getName() == secRuleViolation.getRule().getName()
-                            && ctx.getSourceCodeFilename()
-                                    == secRuleViolation.getJavaFileName()
-                                    && simpleNode.getBeginLine()
-                                            == secRuleViolation.getJavaBeginLine()
-                                            && simpleNode.getEndLine()
-                                                    == secRuleViolation.getJavaEndLine()) {
+                    if (rule.getName().equals(secRuleViolation.getRule().getName())
+                            && ctx.getSourceCodeFilename().equals(secRuleViolation.getJavaFileName())
+                            && simpleNode.getBeginLine() == secRuleViolation.getJavaBeginLine()
+                            && simpleNode.getEndLine()  == secRuleViolation.getJavaEndLine()) {
                         isNewSecurityViolation = false;
                     }
                 }
             }   
         }
     	
-        if (isNewSecurityViolation) { 
-        	
-            LOG.log(Level.FINE,
-                    "*** Adding security violation to report for rule "
-                    + rule.getName() + " in " + ctx.getSourceCodeFilename()
-                    + " Begin line: " + simpleNode.getBeginLine()
-                    + " End line: " + simpleNode.getEndLine()
-                    + " Violation message: " + message);
+        if (isNewSecurityViolation) {            
             rpt.addRuleViolation(new SecurityRuleViolation(rule, ctx, simpleNode, message, variableName));
-
-        } else {
-            LOG.log(Level.FINE,
-                    "*** Duplicate security violation in report for rule "
-                    + rule.getName() + " in " + ctx.getSourceCodeFilename()
-                    + " Begin line: " + simpleNode.getBeginLine()
-                    + " End line: " + simpleNode.getEndLine()
-                    + " Violation will not be added to report");
-        }   	
+        } 	
     }
    
     

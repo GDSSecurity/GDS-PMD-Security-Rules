@@ -32,7 +32,6 @@ import com.gdssecurity.pmd.Utils;
 
 public class SqlStringConcatentation extends BaseSecurityRule {
 
-    private static final Logger LOG = getLogger();
     private static final PropertyDescriptor<String> standardSqlRegexDescriptor = new StringProperty(
             "standardsqlregex",
             "regular expression for detecting standard SQL statements",
@@ -90,7 +89,6 @@ public class SqlStringConcatentation extends BaseSecurityRule {
 
 	@Override
 	public void apply(List<? extends Node> list, RuleContext rulecontext) {
-        LOG.finest("Analyzing file " + rulecontext.getSourceCodeFilename());
         init();
         super.apply(list, rulecontext);
     }
@@ -107,15 +105,9 @@ public class SqlStringConcatentation extends BaseSecurityRule {
         if (codeSnippet != null && standardSqlRegex != null
                 && RegexHelper.isMatch(standardSqlRegex, codeSnippet)) {
             match = true;
-            LOG.finest(
-                    "SQL regex match on line(s) " + beginLine + "-" + endLine
-                    + " with pattern " + standardSqlRegex.toString());
         } else if (codeSnippet != null && customSqlRegex != null
                 && RegexHelper.isMatch(customSqlRegex, codeSnippet)) {
             match = true;
-            LOG.finest(
-                    "SQL regex match on line(s) " + beginLine + "-" + endLine
-                    + " with pattern " + customSqlRegex.toString());
         }
         
         if (match) {
@@ -158,7 +150,7 @@ public class SqlStringConcatentation extends BaseSecurityRule {
                             varType + " is  tainted data"}),
                                 "");
                     } else if (safeTypes.contains(varType)) {
-                            LOG.finest("Ignoring " + varType + " as this was configured as one of the safe types.");
+                            //LOG.finest("Ignoring " + varType + " as this was configured as one of the safe types.");
                     } else {
                         addSecurityViolation(this, rc, astAdditiveExpression,
                                 MessageFormat.format(getMessage(),
@@ -169,9 +161,7 @@ public class SqlStringConcatentation extends BaseSecurityRule {
                                 "");
                     }
                 }
-            } else {
-                LOG.finest("Concatenation of SQL strings detected. This does not appear to introduce a potential SQL Injection vulnerability; however, consider a parameterized command and moving the SQL into a stored procedure");
-            }
+            } 
         }
         
         return super.visit(astAdditiveExpression, obj);

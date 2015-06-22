@@ -16,8 +16,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import net.sourceforge.pmd.PropertyDescriptor;
 import net.sourceforge.pmd.RuleContext;
@@ -58,8 +56,7 @@ import com.gdssecurity.pmd.rules.BaseSecurityRule;
 
 
 public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
-    private static final Logger LOG = getLogger();
-	
+
     private Set<String> currentPathTaintedVariables;
     
     private Map<String, Class<?>> fieldTypes;
@@ -186,9 +183,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
         	
         }
         catch (JaxenException e) {
-            LOG.log(Level.WARNING, "",
-                    "Unexpected error when running Xpath query against AST - "
-                    + e.getMessage());
+        	//
         }
     }
 
@@ -465,7 +460,6 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
     }
     
     private String getType(Node node, String method) {
-        String methodMsg = "Utils::getType - {0}";
 		
         String cannonicalName = "";
         Class<? extends Object> type = null;
@@ -505,13 +499,8 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 			else {
 				cannonicalName = "UNKNOWN_TYPE";
 			}
-        } catch (Exception ex1) {
-    		
-            LOG.log(Level.INFO, methodMsg,
-                    "Unable to get type for " + method + " at "
-                    + rc.getSourceCodeFilename() + " (" + node.getBeginLine()
-                    + ")");
-            cannonicalName = "UNKNOWN_TYPE";
+        } catch (Exception ex1) {    		
+        	//
         }
 		
         return cannonicalName;
