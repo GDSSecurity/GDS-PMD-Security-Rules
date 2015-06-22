@@ -63,7 +63,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
     private Set<String> currentPathTaintedVariables;
     
     private Map<String, Class<?>> fieldTypes;
-	
+    private Map<String, Class<?>> functionParameterTypes;
 	
     private PropertyDescriptor<String[]> sourceDescriptor = new StringMultiProperty("sources",
             "TODO",
@@ -255,8 +255,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
                 DataFlowNode iDataFlowNode = iterator.next();
                 Node node = iDataFlowNode.getNode();
                 if (node instanceof ASTMethodDeclaration || node instanceof ASTConstructorDeclaration) {                	
-                    this.currentPathTaintedVariables = new HashSet<String>();
-                    this.fieldTypes = new HashMap<String, Class<?>>();
+                    this.currentPathTaintedVariables = new HashSet<String>();                    
                     addMethodParamsToTaintedVariables(node);
                     addClassFieldsToTaintedVariables(node);
                 } else if (node instanceof ASTVariableDeclarator || node instanceof ASTStatementExpression) {
@@ -288,7 +287,10 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
     }
 
+
+
 	private void addClassFieldsToTaintedVariables(Node node) {
+		this.fieldTypes = new HashMap<String, Class<?>>();     
         String methodMsg = "DfaSecurityRule::addClassFieldsToTaintedVariables - {0}";
 		ASTTypeDeclaration classDeclaration = node.getFirstParentOfType(ASTTypeDeclaration.class);
 		if (classDeclaration == null) {
@@ -313,12 +315,16 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 	}
 
 	private void addMethodParamsToTaintedVariables(Node node) {
+		this.functionParameterTypes = new HashMap<String, Class<?>>();
 		List<ASTFormalParameter> parameters = node.findDescendantsOfType(ASTFormalParameter.class);       
 		for (ASTFormalParameter parameter : parameters) {
 			ASTType type = parameter.getTypeNode();
+			ASTVariableDeclaratorId name1 = parameter.getFirstDescendantOfType(ASTVariableDeclaratorId.class);						
+			String name = name1.getImage();
+			if (name != null && type != null) {
+				functionParameterTypes.put(name, type.getType());
+			}
 			if (isTypeStringOrStringBuffer(type)){
-				ASTVariableDeclaratorId name1 = parameter.getFirstDescendantOfType(ASTVariableDeclaratorId.class);						
-				String name = name1.getImage();
 				this.currentPathTaintedVariables.add(name);
 			}
 		}
@@ -599,7 +605,14 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
                 	ASTPrimaryPrefix prefix = node.getFirstChildOfType(ASTPrimaryPrefix.class);
                 	ASTName astName = prefix.getFirstChildOfType(ASTName.class);        	
                 	if (astName != null) {
-                		type = node.getFirstDescendantOfType(ASTName.class).getType();
+                		type = astName.getType();
+                		if (type == null) {
+                			String parameterName = astName.getImage();
+                			if (parameterName.indexOf('.') > 0) {
+                				parameterName = parameterName.substring(0, parameterName.indexOf('.'));
+                			}
+                			type = functionParameterTypes.get(parameterName);
+                		}
                 	}
                 	else {
                 		ASTPrimarySuffix suffix = node.getFirstChildOfType(ASTPrimarySuffix.class);
