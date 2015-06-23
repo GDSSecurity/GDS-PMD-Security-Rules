@@ -10,9 +10,9 @@ package com.gdssecurity.pmd.rules;
 
 
 import java.text.MessageFormat;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import net.sourceforge.pmd.PropertyDescriptor;
@@ -52,8 +52,8 @@ public class SqlStringConcatentation extends BaseSecurityRule {
     
     private static Pattern standardSqlRegex = null;
     private static Pattern customSqlRegex = null;
-    private static HashSet<String> insecureTypes = null;
-    private static HashSet<String> safeTypes = null;
+    private static Set<String> insecureTypes = null;
+    private static Set<String> safeTypes = null;
     
     public SqlStringConcatentation() {
     	super();
@@ -75,12 +75,12 @@ public class SqlStringConcatentation extends BaseSecurityRule {
         }
         
         if (insecureTypes == null) {
-            insecureTypes = Utils.arrayAsHashSet(
+            insecureTypes = Utils.arrayAsSet(
             		getProperty(insecureTypesDescriptor));
         }
 
         if (safeTypes == null) {
-            safeTypes = Utils.arrayAsHashSet(
+            safeTypes = Utils.arrayAsSet(
                     getProperty(safeTypesDescriptor));
         }
     }

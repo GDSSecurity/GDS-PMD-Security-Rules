@@ -16,6 +16,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -107,14 +108,16 @@ public final class Utils {
 	
   
 
-	public static HashSet<String> arrayAsHashSet(String[] array) {
-        HashSet<String> hashSet = new HashSet<String>(array.length);
-        int nbItem = 0;
-
-        while (nbItem < array.length) {
-            String str = array[nbItem++];
-
-            hashSet.add(str);
+	public static Set<String> arrayAsSet(String[] array) {
+        Set<String> hashSet = new HashSet<String>(array.length);
+        
+        for(String element: array) {
+        	if (element != null) {
+	        	element = element.trim();
+	        	if (element.length() > 0) {
+	        		hashSet.add(element);
+	        	}
+        	}
         }
         return hashSet;
     }

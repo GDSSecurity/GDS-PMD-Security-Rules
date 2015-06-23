@@ -13,6 +13,7 @@ package com.gdssecurity.pmd.rules;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import net.sourceforge.pmd.PropertyDescriptor;
 import net.sourceforge.pmd.Report;
@@ -29,8 +30,13 @@ import com.gdssecurity.pmd.Utils;
 
 public class BaseSecurityRule extends AbstractJavaRule {
 
-	protected static HashSet<String> sources = new HashSet<String>();
+	protected static Set<String> sources = new HashSet<String>();
 	
+	
+    private static PropertyDescriptor<String[]> sourceDescriptor = new StringMultiProperty(
+            "sources", "TODO",
+            new String[] {
+        "javax.servlet.http.HttpServletRequest.getParameter" }, 1.0f, '|');
 	
 	public BaseSecurityRule() {
 		super();
@@ -38,19 +44,16 @@ public class BaseSecurityRule extends AbstractJavaRule {
 	}
 
 
-    private static PropertyDescriptor<String[]> sourceDescriptor = new StringMultiProperty(
-            "sources", "TODO",
-            new String[] {
-        "javax.servlet.http.HttpServletRequest.getParameter" }, 1.0f, '|');
+
 	
-    protected HashSet<String> getDefaultSources() {
+    protected Set<String> getDefaultSources() {
         return sources;
     }
     
     @Override
 	public void start(RuleContext ctx) {
         if (sources.isEmpty()) {
-            sources = Utils.arrayAsHashSet(getProperty(sourceDescriptor));
+            sources = Utils.arrayAsSet(getProperty(sourceDescriptor));
         }
     }
 	
