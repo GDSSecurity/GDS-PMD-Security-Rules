@@ -30,6 +30,8 @@ import net.sourceforge.pmd.lang.java.ast.ASTAdditiveExpression;
 import net.sourceforge.pmd.lang.java.ast.ASTArgumentList;
 import net.sourceforge.pmd.lang.java.ast.ASTArguments;
 import net.sourceforge.pmd.lang.java.ast.ASTAssignmentOperator;
+import net.sourceforge.pmd.lang.java.ast.ASTClassOrInterfaceBody;
+import net.sourceforge.pmd.lang.java.ast.ASTClassOrInterfaceBodyDeclaration;
 import net.sourceforge.pmd.lang.java.ast.ASTClassOrInterfaceDeclaration;
 import net.sourceforge.pmd.lang.java.ast.ASTClassOrInterfaceType;
 import net.sourceforge.pmd.lang.java.ast.ASTConditionalExpression;
@@ -220,13 +222,19 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
 
 	private void addClassFieldsToTaintedVariables(Node node) {
+		
+		
 		this.fieldTypes = new HashMap<String, Class<?>>();     
-		ASTTypeDeclaration classDeclaration = node.getFirstParentOfType(ASTTypeDeclaration.class);
-		if (classDeclaration == null) {
+		
+		ASTClassOrInterfaceBody astBody = node.getFirstParentOfType(ASTClassOrInterfaceBody.class);
+		if (astBody == null) {
 			return;
 		}
-		List<ASTFieldDeclaration> fields = classDeclaration.findDescendantsOfType(ASTFieldDeclaration.class);
-		for (ASTFieldDeclaration field : fields) {			
+		
+		List<ASTClassOrInterfaceBodyDeclaration> declarations = astBody.findChildrenOfType(ASTClassOrInterfaceBodyDeclaration.class);
+		for (ASTClassOrInterfaceBodyDeclaration declaration: declarations) {
+			ASTFieldDeclaration field = declaration.getFirstChildOfType(ASTFieldDeclaration.class);
+			if (field != null) {
 				Class<?> type = field.getType();
 				ASTVariableDeclarator declarator = field.getFirstChildOfType(ASTVariableDeclarator.class);
 				ASTVariableDeclaratorId name1 = declarator.getFirstChildOfType(ASTVariableDeclaratorId.class);
@@ -237,8 +245,8 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 						currentPathTaintedVariables.add("this." + name);
 					}
 				}
-			
-		}
+			}
+		}		
 		
 	}
 
