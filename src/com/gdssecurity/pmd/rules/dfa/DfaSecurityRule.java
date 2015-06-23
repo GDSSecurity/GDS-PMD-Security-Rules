@@ -39,14 +39,15 @@ import net.sourceforge.pmd.lang.java.ast.ASTConstructorDeclaration;
 import net.sourceforge.pmd.lang.java.ast.ASTExpression;
 import net.sourceforge.pmd.lang.java.ast.ASTFieldDeclaration;
 import net.sourceforge.pmd.lang.java.ast.ASTFormalParameter;
+import net.sourceforge.pmd.lang.java.ast.ASTFormalParameters;
 import net.sourceforge.pmd.lang.java.ast.ASTMethodDeclaration;
+import net.sourceforge.pmd.lang.java.ast.ASTMethodDeclarator;
 import net.sourceforge.pmd.lang.java.ast.ASTName;
 import net.sourceforge.pmd.lang.java.ast.ASTPrimaryExpression;
 import net.sourceforge.pmd.lang.java.ast.ASTPrimaryPrefix;
 import net.sourceforge.pmd.lang.java.ast.ASTPrimarySuffix;
 import net.sourceforge.pmd.lang.java.ast.ASTStatementExpression;
 import net.sourceforge.pmd.lang.java.ast.ASTType;
-import net.sourceforge.pmd.lang.java.ast.ASTTypeDeclaration;
 import net.sourceforge.pmd.lang.java.ast.ASTVariableDeclarator;
 import net.sourceforge.pmd.lang.java.ast.ASTVariableDeclaratorId;
 import net.sourceforge.pmd.lang.rule.properties.StringMultiProperty;
@@ -252,10 +253,21 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
 	private void addMethodParamsToTaintedVariables(Node node) {
 		this.functionParameterTypes = new HashMap<String, Class<?>>();
-		List<ASTFormalParameter> parameters = node.findDescendantsOfType(ASTFormalParameter.class);       
+		ASTFormalParameters formalParameters = null;
+		if (node instanceof ASTMethodDeclaration) {
+			ASTMethodDeclarator declarator = node.getFirstChildOfType(ASTMethodDeclarator.class);
+			formalParameters = declarator.getFirstChildOfType(ASTFormalParameters.class);
+		}
+		else if (node instanceof ASTConstructorDeclaration) {
+			formalParameters = node.getFirstChildOfType(ASTFormalParameters.class); 
+		}
+		if (formalParameters == null) {
+			return;
+		}
+		List<ASTFormalParameter> parameters = formalParameters.findChildrenOfType(ASTFormalParameter.class);       
 		for (ASTFormalParameter parameter : parameters) {
 			ASTType type = parameter.getTypeNode();
-			ASTVariableDeclaratorId name1 = parameter.getFirstDescendantOfType(ASTVariableDeclaratorId.class);						
+			ASTVariableDeclaratorId name1 = parameter.getFirstChildOfType(ASTVariableDeclaratorId.class);						
 			String name = name1.getImage();
 			if (name != null && type != null) {
 				functionParameterTypes.put(name, type.getType());
