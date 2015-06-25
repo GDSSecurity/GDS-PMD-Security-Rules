@@ -10,7 +10,7 @@ package com.gdssecurity.pmd.rules;
 
 
 
-import java.util.HashSet;
+
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -21,6 +21,7 @@ import net.sourceforge.pmd.Rule;
 import net.sourceforge.pmd.RuleContext;
 import net.sourceforge.pmd.RuleViolation;
 import net.sourceforge.pmd.lang.ast.Node;
+import net.sourceforge.pmd.lang.java.ast.ASTType;
 import net.sourceforge.pmd.lang.java.rule.AbstractJavaRule;
 import net.sourceforge.pmd.lang.rule.properties.StringMultiProperty;
 
@@ -30,35 +31,105 @@ import com.gdssecurity.pmd.Utils;
 
 public class BaseSecurityRule extends AbstractJavaRule {
 
-	protected static Set<String> sources = new HashSet<String>();
+	protected Set<String> sources = null;	
+    protected Set<String> unsafeTypes = null;
+    protected Set<String> safeTypes = null;
 	
-	
-    private static PropertyDescriptor<String[]> sourceDescriptor = new StringMultiProperty(
+    private final PropertyDescriptor<String[]> sourceDescriptor = new StringMultiProperty(
             "sources", "TODO",
             new String[] {
-        "javax.servlet.http.HttpServletRequest.getParameter" }, 1.0f, '|');
+            "javax.servlet.http.HttpServletRequest.getParameter" }, 1.0f, '|');
+    
+    private PropertyDescriptor<String[]> unsafeTypesDescriptor = new StringMultiProperty(
+            "unsafeTypes",
+            "types that could create a potential SQLi exposure when concatenated to a SQL statement",
+            new String[] { "java.lang.String", "java.lang.StringBuilder", "java.lang.StringBuffer" }, 1.0f, '|');
+    
+
+    // Ignoring Numeric types by default
+    private final PropertyDescriptor<String[]> safeTypesDescriptor = new StringMultiProperty(
+            "safeTypes",
+            "types that may be considered safe to ignore.",
+            new String[] { "java.lang.Integer", "java.lang.Long" }, 1.0f, '|');
 	
 	public BaseSecurityRule() {
 		super();
 		this.propertyDescriptors.add(sourceDescriptor);
+    	this.propertyDescriptors.add(unsafeTypesDescriptor);
+    	this.propertyDescriptors.add(safeTypesDescriptor);    	
 	}
 
 
 
-	
-    protected Set<String> getDefaultSources() {
-        return sources;
+    protected void init() {
+        if (this.sources == null) {
+            this.sources = Utils.arrayAsSet(getProperty(sourceDescriptor));
+        }
+        if (this.unsafeTypes == null) {
+            this.unsafeTypes = Utils.arrayAsSet(getProperty(unsafeTypesDescriptor));
+        }
+
+        if (this.safeTypes == null) {
+            this.safeTypes = Utils.arrayAsSet(getProperty(safeTypesDescriptor));
+        }    	
+    }
+    
+    
+    protected boolean isSafeType(ASTType type) {
+    	 if (type == null) {
+    		 return false;
+    	 }
+    	 return isSafeType(type.getType());
+    }
+    protected boolean isSafeType(Class<?> type) {
+    	if (type == null) {
+    		return false;
+    	}
+    	return isSafeType(type.getCanonicalName());
+    }
+    protected boolean isSafeType(String type) {
+    	if (type == null) {
+    		return false;
+    	}
+    	return safeTypes.contains(type);
+    }
+
+    
+    protected boolean isUnsafeType(ASTType type) {
+    	if (type == null) {
+    		return true;
+    	}
+    	return isUnsafeType(type.getType());
+    }
+    protected boolean isUnsafeType(Class<?> type) {
+    	if (type == null) {
+    		return true;
+    	}
+    	return isUnsafeType(type.getCanonicalName());
+    }
+    protected boolean isUnsafeType(String type) {
+    	if (type == null) {
+    		return true;
+    	}
+    	return unsafeTypes.contains(type);
+    }
+    
+    protected boolean isSource(String type, String method) {
+    	return 
+    			this.sources.contains(type + "." + method) || 
+    			this.sources.contains ("*." + method) || 
+    			this.sources.contains(type + ".*");
     }
     
     @Override
 	public void start(RuleContext ctx) {
-        if (sources.isEmpty()) {
-            sources = Utils.arrayAsSet(getProperty(sourceDescriptor));
-        }
+    	init();
+    	super.start(ctx);
     }
 	
 	@Override
 	public void apply(List<? extends Node> list, RuleContext rulecontext) {
+		init();
         super.apply(list, rulecontext);
     }
 

@@ -11,7 +11,7 @@
          This ruleset contains rules that are intended to detect Injection flaws (SQLi, XMLi, LDAPi, etc).
    </description>
 
-   <rule class="com.gdssecurity.pmd.rules.dfa.DfaSecurityRule" name="SqlInjectionDfa" message="Sql Injection" dfa="true" typeResolution="true" externalInfoUrl="http://www.owasp.org/index.php/Top_10_2010-A2">
+   <rule class="com.gdssecurity.pmd.rules.dfa.DfaSecurityRule" name="SqlInjection" message="Sql Injection" dfa="true" typeResolution="true" externalInfoUrl="https://www.owasp.org/index.php/Top_10_2013-A1-Injection">
       <description>
    This rule utilizes the PMD data flow analysis (DFA) layer to help trace input from source to sink. PMD is unable to track data flow from source to sink across files. Therefore, the scope of analysis is limited to a single file and even within that a single method (i.e. PMD DFA is intraprocedural).
    
@@ -23,15 +23,20 @@
       <properties>         
          <property name="sinks">
             <value>
-|java.sql.Statement.executeQuery|java.sql.Statement.executeUpdate|java.sql.Statement.execute|java.sql.Statement.addBatch|
-|java.sql.Connection.nativeSQL|java.sql.Connection.prepareCall|java.sql.Connection.prepareStatement|
-</value>
+|java.sql.Statement.executeQuery
+|java.sql.Statement.executeUpdate
+|java.sql.Statement.execute
+|java.sql.Statement.addBatch
+|java.sql.Connection.nativeSQL
+|java.sql.Connection.prepareCall
+|java.sql.Connection.prepareStatement
+			</value>
          </property>
       </properties>
   
    </rule>
   
-   <rule class="com.gdssecurity.pmd.rules.SqlStringConcatentation" message="{0} of type {1} concatenated to SQL string creating a possible SQL Injection vulnerability. Additional information: {2}." name="SqlStringConcatentation" externalInfoUrl="http://www.owasp.org/index.php/Top_10_2010-A1">
+   <rule class="com.gdssecurity.pmd.rules.SqlStringConcatentation" message="{0} of type {1} concatenated to SQL string creating a possible SQL Injection vulnerability. Additional information: {2}." name="SqlStringConcatentation" externalInfoUrl="https://www.owasp.org/index.php/Top_10_2013-A1-Injection">
       <description>        
       This rule identifies expressions that appear to be SQL statements concatenated with objects of type java.lang.String or potentially other dangerous types that could potentially expose the application to SQL Injection. When evaluating the violation, the concatenated expression(s) must be manually reviewed for user-controllable input. If the type is likely to contain/return tainted data (such as javax.servlet.http.HttpServletRequest) these can be configured via the insecureTypes property.
 
@@ -49,7 +54,7 @@
          <property name="customsqlregex">
             <value></value>
          </property>
-         <property name="insecureTypes">
+         <property name="unsafeTypes">
             <value>javax.servlet.http.HttpServletRequest|</value>
          </property>
          <!-- By default all numeric types are ignored and considered safe. Add each type seperated by "|"-->

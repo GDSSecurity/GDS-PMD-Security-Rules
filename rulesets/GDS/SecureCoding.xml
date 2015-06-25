@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="GDS Secure Coding Ruleset" language="java"
+	xmlns="http://pmd.sf.net/ruleset/1.0.0" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xsi:noNamespaceSchemaLocation="http://pmd.sf.net/ruleset_xml_schema.xsd" 
+	xsi:schemaLocation="http://pmd.sf.net/ruleset/1.0.0 http://pmd.sf.net/ruleset_xml_schema.xsd">
+   
+   <description>
+   		This file is part of the GDS PMD Secure Coding Ruleset. 
+   		
+   		This file should be used to enable/disable specific rulesets under rulesets/GDS/OWASP. 
+   		
+   		Each referenced ruleset listed below is intended to match up with the OWASP TOP 10.
+   </description>
+
+   
+   <!-- refer to the ruleset file for descriptions of the rules --> 
+   <rule ref="rulesets/GDS/OWASP/2013-A1-Injection.xml"/>
+   <rule ref="rulesets/GDS/OWASP/2013-A3-Cross-Site-Scripting.xml"/>
+   <!--  Requires additional configuration -->
+   <!-- <rule ref="rulesets/GDS/OWASP/2013-A7-Missing-Function-Level-Access-Control.xml"/> -->
+   <rule ref="rulesets/GDS/OWASP/2013-A9-Using-Known-Vulnerable-Component.xml"/>
+   <rule ref="rulesets/GDS/OWASP/2013-A10-Unvalidated-Redirects-and-Forwards.xml"/>
+   
+   
+   
+
+   
+</ruleset>

@@ -67,10 +67,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
     private Set<String> sinks;
     private Set<String> sanitizers;
 	
-    private PropertyDescriptor<String[]> sourceDescriptor = new StringMultiProperty("sources",
-            "TODO",
-            new String[] {
-        "javax.servlet.http.HttpServletRequest.getParameter" }, 1.0f, '|');
+
 
     private PropertyDescriptor<String[]> sinkDescriptor = new StringMultiProperty("sinks", "TODO",
             new String[] { "" }, 1.0f, '|');
@@ -87,27 +84,19 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
     
     public DfaSecurityRule () {
     	super();
-    	this.propertyDescriptors.add(this.sourceDescriptor);
+
     	this.propertyDescriptors.add(this.sinkDescriptor);
     	this.propertyDescriptors.add(this.sanitizerDescriptor);
     }
 	
-
-	
-	@Override
-	public void apply(List<? extends Node>  list, RuleContext rulecontext) {		
-
-		if (sources.isEmpty()) {
-            sources = Utils.arrayAsSet(getProperty(this.sourceDescriptor));
-        }
-        this.sinks = Utils.arrayAsSet(getProperty(this.sinkDescriptor));
+    @Override
+    protected void init() {
+    	super.init();
+    	this.sinks = Utils.arrayAsSet(getProperty(this.sinkDescriptor));
         this.sanitizers = Utils.arrayAsSet(getProperty(this.sanitizerDescriptor));
-        super.apply(list, rulecontext);
     }
 
-    private boolean isSource(String type, String variable) {
-        return sources.contains(type + "." + variable);
-    }
+
 
 
 	protected boolean isSanitizerMethod(String type, String method) {
@@ -209,7 +198,6 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
         this.currentPathTaintedVariables.addAll(this.fieldTypesTainted);
         this.currentPathTaintedVariables.addAll(this.functionParameterTainted);
         
-
         if (this.methodDataFlowCount < MAX_DATAFLOWS) {
             for (Iterator<DataFlowNode> iterator = currentPath.iterator(); iterator.hasNext();) {
                 DataFlowNode iDataFlowNode = iterator.next();
@@ -259,7 +247,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 				if (name1 != null) {
 					String name = name1.getImage();
 					fieldTypes.put(name, type);
-					if (!field.isFinal() && isTypeStringOrStringBuffer(field.getType())) {
+					if (!field.isFinal() && isUnsafeType(field.getType())) {
 						fieldTypesTainted.add("this." + name);
 					}
 				}
@@ -290,25 +278,15 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 			if (name != null && type != null) {
 				functionParameterTypes.put(name, type.getType());
 			}
-			if (name != null && isTypeStringOrStringBuffer(type)){
+			if (name != null && isUnsafeType(type)){
 				this.functionParameterTainted.add(name);
 			}
 		}
 	}
 
-	private boolean isTypeStringOrStringBuffer(Class<?> clazz) {
-		if (clazz == null) {
-			return false;
-		}
-		return clazz.isAssignableFrom(String.class) || clazz.isAssignableFrom(StringBuffer.class) || clazz.isAssignableFrom(StringBuilder.class);
-	}
+
 	
-    private boolean isTypeStringOrStringBuffer(ASTType type) {
-    	if (type == null) {
-    		return false;
-    	}
-    	return isTypeStringOrStringBuffer(type.getType());
-	}
+
 
 	private void handleDataFlowNode(DataFlowNode iDataFlowNode) {
         boolean def = false;
@@ -393,7 +371,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
 		
 				
-		if (isTainted(simpleNode) && isTypeStringOrStringBuffer(clazz)) {
+		if (isTainted(simpleNode) && isUnsafeType(clazz)) {
 			this.currentPathTaintedVariables.add(variable);
 		}
 	}
