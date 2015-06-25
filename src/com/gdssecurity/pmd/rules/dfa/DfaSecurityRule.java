@@ -59,6 +59,8 @@ import com.gdssecurity.pmd.rules.BaseSecurityRule;
 public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
     private Set<String> currentPathTaintedVariables;
+    private Set<String> functionParameterTainted = new HashSet<String>();
+    private Set<String> fieldTypesTainted = new HashSet<String>();
     
     private Map<String, Class<?>> fieldTypes;
     private Map<String, Class<?>> functionParameterTypes;
@@ -94,7 +96,8 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 	
 	@Override
 	public void apply(List<? extends Node>  list, RuleContext rulecontext) {		
-        if (sources.isEmpty()) {
+
+		if (sources.isEmpty()) {
             sources = Utils.arrayAsSet(getProperty(this.sourceDescriptor));
         }
         this.sinks = Utils.arrayAsSet(getProperty(this.sinkDescriptor));
@@ -202,7 +205,10 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 	public void execute(CurrentPath currentPath) {
 
         this.methodDataFlowCount++;
-
+        this.currentPathTaintedVariables = new HashSet<String>();
+        this.currentPathTaintedVariables.addAll(this.fieldTypesTainted);
+        this.currentPathTaintedVariables.addAll(this.functionParameterTainted);
+        
 
         if (this.methodDataFlowCount < MAX_DATAFLOWS) {
             for (Iterator<DataFlowNode> iterator = currentPath.iterator(); iterator.hasNext();) {
@@ -212,6 +218,8 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
                     this.currentPathTaintedVariables = new HashSet<String>();                    
                     addMethodParamsToTaintedVariables(node);
                     addClassFieldsToTaintedVariables(node);
+                    this.currentPathTaintedVariables.addAll(this.fieldTypesTainted);
+                    this.currentPathTaintedVariables.addAll(this.functionParameterTainted);
                 } else if (node instanceof ASTVariableDeclarator || node instanceof ASTStatementExpression) {
                     handleDataFlowNode(iDataFlowNode);
                 } 										
@@ -233,7 +241,8 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 	private void addClassFieldsToTaintedVariables(Node node) {
 		
 		
-		this.fieldTypes = new HashMap<String, Class<?>>();     
+		this.fieldTypes = new HashMap<String, Class<?>>();
+		this.fieldTypesTainted = new HashSet<String>();
 		
 		ASTClassOrInterfaceBody astBody = node.getFirstParentOfType(ASTClassOrInterfaceBody.class);
 		if (astBody == null) {
@@ -251,7 +260,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 					String name = name1.getImage();
 					fieldTypes.put(name, type);
 					if (!field.isFinal() && isTypeStringOrStringBuffer(field.getType())) {
-						currentPathTaintedVariables.add("this." + name);
+						fieldTypesTainted.add("this." + name);
 					}
 				}
 			}
@@ -261,6 +270,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
 	private void addMethodParamsToTaintedVariables(Node node) {
 		this.functionParameterTypes = new HashMap<String, Class<?>>();
+		this.functionParameterTainted = new HashSet<String>();
 		ASTFormalParameters formalParameters = null;
 		if (node instanceof ASTMethodDeclaration) {
 			ASTMethodDeclarator declarator = node.getFirstChildOfType(ASTMethodDeclarator.class);
@@ -281,7 +291,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 				functionParameterTypes.put(name, type.getType());
 			}
 			if (name != null && isTypeStringOrStringBuffer(type)){
-				this.currentPathTaintedVariables.add(name);
+				this.functionParameterTainted.add(name);
 			}
 		}
 	}
@@ -315,7 +325,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
         	}
         }
 
-        if (def) {
+        if (def) {        	
             handleVariableDefinition(iDataFlowNode, variableName);
         }
 
@@ -370,8 +380,20 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
 	private void handleVariableDefinition(DataFlowNode iDataFlowNode, String variable) {
 		Node simpleNode = iDataFlowNode.getNode();
+		Class<?> clazz = String.class;
+		
+		
+		Node primaryExpression = simpleNode.jjtGetChild(0);
+		if (primaryExpression instanceof ASTPrimaryExpression) {
+			Node primaryPrefix = primaryExpression.jjtGetChild(0);
+			if (primaryPrefix instanceof ASTPrimaryPrefix) {
+				clazz = ((ASTPrimaryPrefix) primaryPrefix).getType();
+			}
+		}
 
-		if (isTainted(simpleNode)) {
+		
+				
+		if (isTainted(simpleNode) && isTypeStringOrStringBuffer(clazz)) {
 			this.currentPathTaintedVariables.add(variable);
 		}
 	}
