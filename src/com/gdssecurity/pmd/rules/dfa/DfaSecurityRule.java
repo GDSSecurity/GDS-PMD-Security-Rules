@@ -69,10 +69,10 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 	
 
 
-    private PropertyDescriptor<String[]> sinkDescriptor = new StringMultiProperty("sinks", "TODO",
+    private final PropertyDescriptor<String[]> sinkDescriptor = new StringMultiProperty("sinks", "TODO",
             new String[] { "" }, 1.0f, '|');
     
-    private PropertyDescriptor<String[]> sanitizerDescriptor = new StringMultiProperty("sanitizers", "TODO", 
+    private final PropertyDescriptor<String[]> sanitizerDescriptor = new StringMultiProperty("sanitizers", "TODO", 
     		new String[] { "" }, 1.0f, '|');
 
     private RuleContext rc;

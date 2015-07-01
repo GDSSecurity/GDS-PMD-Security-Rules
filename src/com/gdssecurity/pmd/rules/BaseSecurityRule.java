@@ -40,7 +40,7 @@ public class BaseSecurityRule extends AbstractJavaRule {
             new String[] {
             "javax.servlet.http.HttpServletRequest.getParameter" }, 1.0f, '|');
     
-    private PropertyDescriptor<String[]> unsafeTypesDescriptor = new StringMultiProperty(
+    private final PropertyDescriptor<String[]> unsafeTypesDescriptor = new StringMultiProperty(
             "unsafeTypes",
             "types that could create a potential SQLi exposure when concatenated to a SQL statement",
             new String[] { "java.lang.String", "java.lang.StringBuilder", "java.lang.StringBuffer" }, 1.0f, '|');
