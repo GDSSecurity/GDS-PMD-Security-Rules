@@ -43,14 +43,31 @@ public class BaseSecurityRule extends AbstractJavaRule {
     private final PropertyDescriptor<String[]> unsafeTypesDescriptor = new StringMultiProperty(
             "unsafeTypes",
             "types that could create a potential SQLi exposure when concatenated to a SQL statement",
-            new String[] { "java.lang.String", "java.lang.StringBuilder", "java.lang.StringBuffer" }, 1.0f, '|');
+            new String[] {
+            		"java.lang.String", 
+            		"java.lang.StringBuilder", 
+            		"java.lang.StringBuffer"
+            }, 
+            1.0f,
+            '|');
     
 
     // Ignoring Numeric types by default
     private final PropertyDescriptor<String[]> safeTypesDescriptor = new StringMultiProperty(
             "safeTypes",
             "types that may be considered safe to ignore.",
-            new String[] { "java.lang.Integer", "java.lang.Long" }, 1.0f, '|');
+            new String[] { 
+            	"java.lang.Byte",
+            	"java.lang.Short",            	
+            	"java.lang.Integer", 
+            	"java.lang.Long",
+            	"byte",
+            	"short",
+            	"int",
+            	"long"
+            },
+            1.0f, 
+            '|');
 	
 	public BaseSecurityRule() {
 		super();

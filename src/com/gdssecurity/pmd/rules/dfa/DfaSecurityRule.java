@@ -9,6 +9,7 @@
 package com.gdssecurity.pmd.rules.dfa;
 
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,8 +49,10 @@ import net.sourceforge.pmd.lang.java.ast.ASTStatementExpression;
 import net.sourceforge.pmd.lang.java.ast.ASTType;
 import net.sourceforge.pmd.lang.java.ast.ASTVariableDeclarator;
 import net.sourceforge.pmd.lang.java.ast.ASTVariableDeclaratorId;
+import net.sourceforge.pmd.lang.java.ast.ASTVariableInitializer;
 import net.sourceforge.pmd.lang.rule.properties.StringMultiProperty;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jaxen.JaxenException;
 
 import com.gdssecurity.pmd.Utils;
@@ -58,7 +61,8 @@ import com.gdssecurity.pmd.rules.BaseSecurityRule;
 
 public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 
-    private Set<String> currentPathTaintedVariables;
+    private static final String UNKNOWN_TYPE = "UNKNOWN_TYPE";
+	private Set<String> currentPathTaintedVariables;
     private Set<String> functionParameterTainted = new HashSet<String>();
     private Set<String> fieldTypesTainted = new HashSet<String>();
     
@@ -368,7 +372,14 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 				clazz = ((ASTPrimaryPrefix) primaryPrefix).getType();
 			}
 		}
+		if (primaryExpression instanceof ASTVariableDeclaratorId && simpleNode.jjtGetNumChildren() > 1) {
+			Node initializer = simpleNode.jjtGetChild(1);
+			if (initializer instanceof ASTVariableInitializer) {
+				clazz = ((ASTVariableDeclaratorId)primaryExpression).getType();
+			}
+		}
 
+		
 		
 				
 		if (isTainted(simpleNode) && isUnsafeType(clazz)) {
@@ -382,7 +393,6 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
     		if (isMethodCall(node)) {
                 String method = getMethod(node);
                 String type = getType(node);
-                
                 if (isSanitizerMethod(type, method)) {
                 	continue;
                 }
@@ -391,6 +401,9 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
                 } else if (isSink(type, method)) {
                     analyzeSinkMethodArgs(node);
                 } 
+                else if (isSafeType(getReturnType(node, type, method))){
+                	continue;
+                }
             } else if (node.hasDescendantOfType(ASTName.class)){
                 List<ASTName> astNames = node.findDescendantsOfType(ASTName.class);
                 if (analyzeVariable(astNames)){
@@ -416,8 +429,61 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
     	
     }
     
+    private static Map<String, String> cacheReturnTypes = new HashMap<String, String>();
+    
+    private String getReturnType(ASTPrimaryExpression node, String type, String methodName) {
+    	String realType = type;
+    	try {
+	    	Class<?> clazz = null;
+	    	if (StringUtils.isBlank(realType) || UNKNOWN_TYPE.equals(realType)) {
+	    		ASTClassOrInterfaceDeclaration type2 = node.getFirstParentOfType(ASTClassOrInterfaceDeclaration.class);
+	    		if (type2 != null && type2.getType() != null){
+	    			clazz = type2.getType();
+	    			realType = clazz.getCanonicalName();
+	    		}
+	    	}
+	    	
+	    	if (cacheReturnTypes.containsKey(realType + "." + methodName)) {
+	    		return cacheReturnTypes.get(realType + "." + methodName);
+	    	}
+	    	
+	    	if (clazz == null && !StringUtils.isBlank(realType) && !UNKNOWN_TYPE.equals(realType)) {
+	    		clazz = Class.forName(realType);
+	    	}
+	    	if (clazz != null) {		    	
+		    	Set<Class<?>> methodReturnTypes = new HashSet<Class<?>>();
+		    	for(Method method: clazz.getMethods()) {
+		    		if (method.getName().equals(methodName)) {
+		    			Class<?> returnType = method.getReturnType();
+		    			if (returnType != null && !"void".equals(returnType.getCanonicalName())){
+		    				methodReturnTypes.add(returnType);
+		    			}
+		    		}
+		    	}
+		    	if (methodReturnTypes.size() == 1) {
+		    		String methodReturnType = methodReturnTypes.iterator().next().getCanonicalName();
+		    		cacheReturnTypes.put(realType + "." + methodName, methodReturnType);
+		    		return methodReturnType;
+		    	}
+	    	}
+    	}
+    	catch (Exception e) {
+    		cacheReturnTypes.put(realType + "." + methodName, UNKNOWN_TYPE);
+    		return UNKNOWN_TYPE;
+    	}
+    	catch (NoClassDefFoundError err) {
+    		cacheReturnTypes.put(realType + "." + methodName, UNKNOWN_TYPE);
+    		return UNKNOWN_TYPE;
+    	}
+    	catch (ExceptionInInitializerError err) {
+    		cacheReturnTypes.put(realType + "." + methodName, UNKNOWN_TYPE);
+    		return UNKNOWN_TYPE;
+    	}
+    	cacheReturnTypes.put(realType + "." + methodName, UNKNOWN_TYPE);
+		return UNKNOWN_TYPE;
+	}
 
-    private List<ASTPrimaryExpression> getExp(Node node2) {
+	private List<ASTPrimaryExpression> getExp(Node node2) {
     	List<ASTPrimaryExpression> expressions = new ArrayList<ASTPrimaryExpression>();
     	for (int i=0; i < node2.jjtGetNumChildren(); i++) {
     		Node child = node2.jjtGetChild(i);
@@ -479,7 +545,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
     private String getType(Node node) {
 		
         String cannonicalName = "";
-        Class<? extends Object> type = null;
+        Class<?> type = null;
 		
         try {
             if (node instanceof ASTExpression) {				
@@ -514,7 +580,7 @@ public class DfaSecurityRule extends BaseSecurityRule  implements Executable {
 				cannonicalName = type.getCanonicalName();
 			}
 			else {
-				cannonicalName = "UNKNOWN_TYPE";
+				cannonicalName = UNKNOWN_TYPE;
 			}
         } catch (Exception ex1) {    		
         	//
