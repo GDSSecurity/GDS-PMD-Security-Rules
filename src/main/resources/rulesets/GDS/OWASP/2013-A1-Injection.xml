@@ -32,10 +32,25 @@
 |java.sql.Connection.prepareStatement
 			</value>
          </property>
+         <property name="safeTypes">
+         	<value>
+         		|java.lang.Integer
+         		|java.lang.Long
+         		|java.lang.Byte
+         		|java.lang.Short
+         		|java.lang.Boolean
+         		|int
+         		|long
+         		|byte
+         		|short
+         		|boolean
+         	</value>
+         </property>
       </properties>
   
    </rule>
   
+  <!-- 
    <rule class="com.gdssecurity.pmd.rules.SqlStringConcatentation" message="{0} of type {1} concatenated to SQL string creating a possible SQL Injection vulnerability. Additional information: {2}." name="SqlStringConcatentation" externalInfoUrl="https://www.owasp.org/index.php/Top_10_2013-A1-Injection">
       <description>        
       This rule identifies expressions that appear to be SQL statements concatenated with objects of type java.lang.String or potentially other dangerous types that could potentially expose the application to SQL Injection. When evaluating the violation, the concatenated expression(s) must be manually reviewed for user-controllable input. If the type is likely to contain/return tainted data (such as javax.servlet.http.HttpServletRequest) these can be configured via the insecureTypes property.
@@ -46,7 +61,7 @@
       </description>
       
       <priority>3</priority>
-      <!-- The Regex values are Case Insensitive and will match on Multiline -->
+      <! - - The Regex values are Case Insensitive and will match on Multiline - - >
       <properties>
         <property name="standardsqlregex">
             <value>select.+from.+(where)?|insert.+into|update.+set|delete.+(from|where)</value>
@@ -57,13 +72,13 @@
          <property name="unsafeTypes">
             <value>javax.servlet.http.HttpServletRequest|</value>
          </property>
-         <!-- By default all numeric types are ignored and considered safe. Add each type seperated by "|"-->
+         <! - - By default all numeric types are ignored and considered safe. Add each type seperated by "|"- - >
          <property name="safeTypes">
             <value>java.lang.Long|java.lang.Integer|java.lang.Short|java.lang.Byte|java.lang.Double|java.lang.Float|java.math.BigInteger|java.math.BigDecimal</value>
          </property>
       </properties>
       
    </rule>
-     
+      -->
    
 </ruleset>
